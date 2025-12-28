@@ -328,7 +328,7 @@ export default function SubmitForm() {
               </AlertDescription>
             </Alert>
             <Button 
-              onClick={() => navigate("/forms")} 
+              onClick={() => navigate("/form")} 
               variant="outline" 
               className="w-full mt-4"
             >
@@ -352,7 +352,7 @@ export default function SubmitForm() {
               The form you're looking for doesn't exist or has been removed.
             </p>
             <Button 
-              onClick={() => navigate("/forms")} 
+              onClick={() => navigate("/form")} 
               variant="outline"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -423,7 +423,7 @@ export default function SubmitForm() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/forms")}
+                onClick={() => navigate("/form")}
                 className="mb-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
