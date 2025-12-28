@@ -64,7 +64,7 @@ export const GET_FORM_BY_ID = gql`
 
 export const SUBMIT_FORM_RESPONSE = gql`
   mutation SubmitFormResponse($objects: [form_submissionsInsertInput!]!) {
-    insertIntorowsCollection(objects: $objects) {
+    insertIntoresponsesCollection(objects: $objects) {
       records {
         id
         form_id
