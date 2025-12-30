@@ -52,7 +52,7 @@ import {
   Trash2,
   X,
   AlertTriangle,
-  Pencil 
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { graphqlService } from "@/services/graphql.service";
@@ -507,12 +507,26 @@ export default function ResponsesIndex() {
   };
 
   // Render table actions cell
+  // Update the renderActionsCell function in ResponsesIndex.tsx
   const renderActionsCell = (response: FormResponse) => {
     const isDeleting = deletingId === response.id;
 
     return (
-      <TableCell className="w-36">
+      <TableCell className="w-44">
         <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              // Navigate to show response page
+              navigate(`/form/${formId}/responses/show/${response.id}`);
+            }}
+            title="View response details"
+            className="h-8 w-8"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
@@ -524,18 +538,6 @@ export default function ResponsesIndex() {
             className="h-8 w-8"
           >
             <Pencil className="w-3.5 h-3.5" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              toast.info("View response feature coming soon!");
-            }}
-            title="View response details"
-            className="h-8 w-8"
-          >
-            <Eye className="w-3.5 h-3.5" />
           </Button>
 
           <Button

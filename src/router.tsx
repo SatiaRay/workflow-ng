@@ -12,6 +12,7 @@ import SubmitForm from "./routes/form/submit-form";
 import EditForm from "./routes/form/edit-form";
 import ResponsesIndex from "./routes/response/responses-index";
 import EditResponse from "./routes/response/edit-response";
+import ShowResponse from "./routes/response/show-response";
 
 export const router = createBrowserRouter([
   {
@@ -64,6 +65,10 @@ export const router = createBrowserRouter([
       {
         path: ":formId/responses",
         element: <ResponsesIndex />,
+      },
+      {
+        path: ":formId/responses/show/:responseId", // Add this route
+        element: <ShowResponse />,
       },
       {
         path: ":formId/responses/edit/:responseId",
