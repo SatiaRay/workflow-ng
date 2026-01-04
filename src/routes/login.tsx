@@ -1,6 +1,6 @@
 // LoginPage.tsx
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { GalleryVerticalEnd, Mail, Lock, Loader2 } from "lucide-react";
 
@@ -23,6 +23,7 @@ const supabase = createClient(
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,9 +33,10 @@ export default function LoginPage() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // If user is already logged in, redirect to home
+      // If user is already logged in, redirect to intended page or home
       if (session) {
-        navigate("/");
+        const redirectUrl = searchParams.get("redirect") || "/";
+        navigate(redirectUrl, { replace: true });
       }
     };
 
@@ -43,12 +45,13 @@ export default function LoginPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        navigate("/");
+        const redirectUrl = searchParams.get("redirect") || "/";
+        navigate(redirectUrl, { replace: true });
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +73,7 @@ export default function LoginPage() {
         toast.error(error.message);
       } else {
         toast.success("با موفقیت وارد شدید!");
-        navigate("/");
+        // Navigation will be handled by the auth state change listener
       }
     } catch (error: any) {
       toast.error(error.message || "خطایی رخ داده است");

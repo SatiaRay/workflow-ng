@@ -13,6 +13,7 @@ import ResponsesIndex from "./routes/response/responses-index";
 import EditResponse from "./routes/response/edit-response";
 import ShowResponse from "./routes/response/show-response";
 import LoginPage from "./routes/login";
+import ProtectedRoute from "./components/protected-route";
 
 export const router = createBrowserRouter([
   {
@@ -53,32 +54,60 @@ export const router = createBrowserRouter([
     children: [
       {
         path: "generator",
-        element: <FormGenerator />,
+        element: (
+          <ProtectedRoute>
+            <FormGenerator />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "submit/:id",
-        element: <SubmitForm />,
+        element: (
+          <ProtectedRoute>
+            <SubmitForm />
+          </ProtectedRoute>
+        ),
       },
       {
         index: true,
         path: "",
-        element: <FormList />,
+        element: (
+          <ProtectedRoute>
+            <FormList />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "edit/:formId",
-        element: <EditForm />,
+        element: (
+          <ProtectedRoute>
+            <EditForm />
+          </ProtectedRoute>
+        ),
       },
       {
         path: ":formId/responses",
-        element: <ResponsesIndex />,
+        element: (
+          <ProtectedRoute>
+            <ResponsesIndex />
+          </ProtectedRoute>
+        ),
       },
       {
-        path: ":formId/responses/show/:responseId", // Add this route
-        element: <ShowResponse />,
+        path: ":formId/responses/show/:responseId",
+        element: (
+          <ProtectedRoute>
+            <ShowResponse />
+          </ProtectedRoute>
+        ),
       },
       {
         path: ":formId/responses/edit/:responseId",
-        element: <EditResponse />,
+        element: (
+          <ProtectedRoute>
+            <EditResponse />
+          </ProtectedRoute>
+        ),
       },
     ],
   },
