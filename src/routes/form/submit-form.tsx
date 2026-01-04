@@ -95,7 +95,7 @@ export default function SubmitForm() {
 
         if (!form) {
           setFormNotFound(true);
-          toast.error("Form not found");
+          toast.error("فرم یافت نشد");
           return;
         }
 
@@ -115,7 +115,7 @@ export default function SubmitForm() {
           }
         } catch (parseError) {
           console.error("Error parsing schema:", parseError);
-          toast.error("Error loading form structure");
+          toast.error("خطا در بارگذاری ساختار فرم");
         }
 
         setFields(parsedFields);
@@ -142,7 +142,7 @@ export default function SubmitForm() {
         await fetchRelatedResponses(parsedFields);
       } catch (error: any) {
         console.error("Error fetching form:", error);
-        toast.error(`Error loading form: ${error.message}`);
+        toast.error(`خطا در بارگذاری فرم: ${error.message}`);
         setFormNotFound(true);
       } finally {
         setLoading(false);
@@ -207,7 +207,7 @@ export default function SubmitForm() {
             }
 
             // Get display value from the configured display field
-            let displayValue = `Response ${String(responseId).substring(
+            let displayValue = `پاسخ ${String(responseId).substring(
               0,
               8
             )}...`;
@@ -260,7 +260,7 @@ export default function SubmitForm() {
           `Error fetching related responses for field ${field.id}:`,
           error
         );
-        toast.error(`Failed to load related data for ${field.label}`);
+        toast.error(`بارگذاری داده‌های مرتبط برای ${field.label} ناموفق بود`);
 
         // Set empty array on error to prevent UI issues
         setRelatedResponses((prev) => ({
@@ -299,7 +299,7 @@ export default function SubmitForm() {
       if (field.required) {
         if (field.type === "checkbox") {
           if (!value) {
-            newErrors[field.id] = `${field.label} is required`;
+            newErrors[field.id] = `${field.label} الزامی است`;
           }
         } else if (
           field.type === "select" ||
@@ -307,10 +307,10 @@ export default function SubmitForm() {
           field.type === "relation"
         ) {
           if (!value || value.toString().trim() === "") {
-            newErrors[field.id] = `Please select an option for ${field.label}`;
+            newErrors[field.id] = `لطفاً یک گزینه برای ${field.label} انتخاب کنید`;
           }
         } else if (!value || value.toString().trim() === "") {
-          newErrors[field.id] = `${field.label} is required`;
+          newErrors[field.id] = `${field.label} الزامی است`;
         }
       }
 
@@ -318,14 +318,14 @@ export default function SubmitForm() {
       if (field.type === "email" && value && value.trim() !== "") {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
-          newErrors[field.id] = "Please enter a valid email address";
+          newErrors[field.id] = "لطفاً یک آدرس ایمیل معتبر وارد کنید";
         }
       }
 
       // Number validation
       if (field.type === "number" && value && value.trim() !== "") {
         if (isNaN(Number(value))) {
-          newErrors[field.id] = "Please enter a valid number";
+          newErrors[field.id] = "لطفاً یک عدد معتبر وارد کنید";
         }
       }
 
@@ -335,7 +335,7 @@ export default function SubmitForm() {
         const responses = relatedResponses[field.id] || [];
         const selectedResponse = responses.find((r) => r.id === value);
         if (!selectedResponse) {
-          newErrors[field.id] = "Please select a valid option";
+          newErrors[field.id] = "لطفاً یک گزینه معتبر انتخاب کنید";
         }
       }
     });
@@ -348,12 +348,12 @@ export default function SubmitForm() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Please fix the errors in the form");
+      toast.error("لطفاً خطاهای موجود در فرم را برطرف کنید");
       return;
     }
 
     if (!id) {
-      toast.error("Form ID is missing");
+      toast.error("شناسه فرم وجود ندارد");
       return;
     }
 
@@ -364,14 +364,14 @@ export default function SubmitForm() {
 
       if (result) {
         setIsSubmitted(true);
-        toast.success("Form submitted successfully!");
+        toast.success("فرم با موفقیت ارسال شد!");
         setErrors({});
       } else {
-        toast.error("Failed to submit form - no response received");
+        toast.error("ارسال فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }
     } catch (error: any) {
       console.error("Submission error:", error);
-      toast.error(`Failed to submit: ${error.message}`);
+      toast.error(`ارسال ناموفق بود: ${error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -444,8 +444,8 @@ export default function SubmitForm() {
               <SelectValue
                 placeholder={
                   hasOptions
-                    ? field.placeholder || "Select an option"
-                    : "No options available"
+                    ? field.placeholder || "یک گزینه انتخاب کنید"
+                    : "گزینه‌ای موجود نیست"
                 }
               />
             </SelectTrigger>
@@ -464,7 +464,7 @@ export default function SubmitForm() {
       case "relation":
         const responses = relatedResponses[field.id] || [];
         const hasResponses = responses.length > 0;
-        const formTitle = field.relationConfig?.formTitle || "Related Form";
+        const formTitle = field.relationConfig?.formTitle || "فرم مرتبط";
 
         return (
           <div className="space-y-2">
@@ -474,31 +474,31 @@ export default function SubmitForm() {
               options={responses.map((response) => ({
                 value: response.id,
                 label: response.displayValue,
-                description: `Submitted ${new Date(
+                description: `ارسال شده در ${new Date(
                   response.created_at
-                ).toLocaleDateString()}`,
+                ).toLocaleDateString("fa-IR")}`,
               }))}
               placeholder={
                 isLoading
-                  ? "Loading options..."
+                  ? "در حال بارگذاری گزینه‌ها..."
                   : hasResponses
-                  ? field.placeholder || `Select from ${formTitle}`
-                  : "No responses available"
+                  ? field.placeholder || `انتخاب از ${formTitle}`
+                  : "پاسخی موجود نیست"
               }
               disabled={isLoading || !hasResponses}
               className={fieldError ? "border-red-500" : ""}
-              emptyMessage="No responses found in related form"
+              emptyMessage="هیچ پاسخی در فرم مرتبط یافت نشد"
             />
             {field.relationConfig?.formTitle && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Link className="w-3 h-3" />
-                <span>Linked to: {field.relationConfig.formTitle}</span>
+                <span>مرتبط با: {field.relationConfig.formTitle}</span>
                 {field.required && <span className="text-red-500 ml-1">*</span>}
               </div>
             )}
             {!isLoading && hasResponses && (
               <p className="text-xs text-muted-foreground">
-                Selecting an option will create a relation to {formTitle}
+                انتخاب یک گزینه یک ارتباط با {formTitle} ایجاد می‌کند
               </p>
             )}
           </div>
@@ -532,7 +532,7 @@ export default function SubmitForm() {
             ))}
             {!field.options || field.options.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">
-                No options available
+                گزینه‌ای موجود نیست
               </p>
             ) : null}
           </RadioGroup>
@@ -641,13 +641,13 @@ export default function SubmitForm() {
         <Card className="w-full max-w-2xl">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Form Not Found</h2>
+            <h2 className="text-xl font-semibold mb-2">فرم یافت نشد</h2>
             <p className="text-muted-foreground mb-4">
-              The form you're looking for doesn't exist or has been removed.
+              فرمی که به دنبال آن هستید وجود ندارد یا حذف شده است.
             </p>
             <Button onClick={() => navigate(-1)} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Go Back
+              بازگشت
             </Button>
           </CardContent>
         </Card>
@@ -669,16 +669,16 @@ export default function SubmitForm() {
               </div>
 
               <h1 className="text-3xl font-bold mb-4 text-green-700">
-                Successfully Submitted!
+                با موفقیت ارسال شد!
               </h1>
 
               <p className="text-lg text-muted-foreground mb-2">
-                Thank you for submitting{" "}
-                <span className="font-semibold">{formTitle}</span>
+                از ارسال فرم{" "}
+                <span className="font-semibold">{formTitle}</span> متشکریم
               </p>
 
               <p className="text-muted-foreground mb-8">
-                Your response has been recorded successfully.
+                پاسخ شما با موفقیت ثبت شد.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -688,7 +688,7 @@ export default function SubmitForm() {
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <PlusCircle className="w-5 h-5 mr-2" />
-                  Submit Another Response
+                  ارسال پاسخ دیگر
                 </Button>
 
                 <Button
@@ -697,14 +697,13 @@ export default function SubmitForm() {
                   size="lg"
                 >
                   <ArrowLeft className="w-5 h-5 mr-2" />
-                  Back to Forms List
+                  بازگشت به لیست فرم‌ها
                 </Button>
               </div>
 
               <div className="mt-8 pt-6 border-t">
                 <p className="text-sm text-muted-foreground">
-                  Need to make changes? Click "Submit Another Response" to fill
-                  out the form again.
+                  نیاز به ایجاد تغییرات دارید؟ روی "ارسال پاسخ دیگر" کلیک کنید تا دوباره فرم را پر کنید.
                 </p>
               </div>
             </CardContent>
@@ -720,7 +719,7 @@ export default function SubmitForm() {
                 className="mb-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Go Back
+                بازگشت
               </Button>
 
               <h1 className="text-3xl font-bold mb-2">{formTitle}</h1>
@@ -731,13 +730,13 @@ export default function SubmitForm() {
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span>Form is active and accepting responses</span>
+                <span>فرم فعال است و پاسخ‌ها را می‌پذیرد</span>
               </div>
 
               {fields.length === 0 && (
                 <Alert>
                   <AlertDescription>
-                    This form has no fields to submit.
+                    این فرم فیلدی برای ارسال ندارد.
                   </AlertDescription>
                 </Alert>
               )}
@@ -747,9 +746,9 @@ export default function SubmitForm() {
             {fields.length > 0 ? (
               <Card className="mb-8">
                 <CardHeader>
-                  <CardTitle>Fill out the form</CardTitle>
+                  <CardTitle>فرم را تکمیل کنید</CardTitle>
                   <CardDescription>
-                    Please provide the following information
+                    لطفاً اطلاعات زیر را ارائه دهید
                   </CardDescription>
                 </CardHeader>
 
@@ -779,7 +778,7 @@ export default function SubmitForm() {
 
                           {field.type === "email" && !errors[field.id] && (
                             <p className="text-xs text-muted-foreground">
-                              We'll never share your email with anyone else.
+                              هرگز ایمیل شما را با کسی به اشتراک نخواهیم گذاشت.
                             </p>
                           )}
 
@@ -810,12 +809,12 @@ export default function SubmitForm() {
                           {submitting ? (
                             <>
                               <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                              Submitting...
+                              در حال ارسال...
                             </>
                           ) : (
                             <>
                               <Send className="w-5 h-5 mr-2" />
-                              Submit Response
+                              ارسال پاسخ
                             </>
                           )}
                         </Button>
@@ -824,14 +823,14 @@ export default function SubmitForm() {
                           <p className="text-xs text-muted-foreground">
                             {fields.filter((f) => f.required).length > 0 ? (
                               <>
-                                <span className="text-red-500">*</span> Required
-                                fields
+                                <span className="text-red-500">*</span> فیلدهای
+                                الزامی
                                 {" • "}
                                 {fields.filter((f) => f.required).length}{" "}
-                                required field(s)
+                                فیلد الزامی
                               </>
                             ) : (
-                              "All fields are optional"
+                              "تمام فیلدها اختیاری هستند"
                             )}
                           </p>
                         </div>
@@ -844,13 +843,13 @@ export default function SubmitForm() {
               <Card>
                 <CardContent className="pt-6 text-center">
                   <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Empty Form</h3>
+                  <h3 className="text-lg font-semibold mb-2">فرم خالی</h3>
                   <p className="text-muted-foreground mb-4">
-                    This form doesn't have any fields to submit.
+                    این فرم هیچ فیلدی برای ارسال ندارد.
                   </p>
                   <Button onClick={() => navigate("/form")} variant="outline">
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Forms List
+                    بازگشت به لیست فرم‌ها
                   </Button>
                 </CardContent>
               </Card>
@@ -859,8 +858,7 @@ export default function SubmitForm() {
             {/* Form Info Footer */}
             <div className="mt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                This form is powered by FormBuilder • Your responses are secure
-                and private
+                این فرم توسط ساتیا فرم پشتیبانی می‌شود • پاسخ‌های شما امن و خصوصی هستند
               </p>
             </div>
           </>

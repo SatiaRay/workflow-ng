@@ -101,40 +101,40 @@ export default function ShowResponse() {
         switch (field.type) {
           case "text":
           case "textarea":
-            formattedValue = value || "Not provided";
+            formattedValue = value || "ارائه نشده";
             icon = <FileText className="w-4 h-4" />;
             break;
           case "email":
-            formattedValue = value || "Not provided";
+            formattedValue = value || "ارائه نشده";
             icon = <Mail className="w-4 h-4" />;
             break;
           case "number":
-            formattedValue = value !== undefined && value !== "" ? value.toString() : "Not provided";
+            formattedValue = value !== undefined && value !== "" ? value.toString() : "ارائه نشده";
             icon = <Hash className="w-4 h-4" />;
             break;
           case "select":
           case "dropdown":
-            formattedValue = value || "Not selected";
+            formattedValue = value || "انتخاب نشده";
             icon = <ChevronRight className="w-4 h-4" />;
             break;
           case "radio":
-            formattedValue = value || "Not selected";
+            formattedValue = value || "انتخاب نشده";
             icon = <Radio className="w-4 h-4" />;
             break;
           case "checkbox":
-            formattedValue = value ? "Yes" : "No";
+            formattedValue = value ? "بله" : "خیر";
             icon = <CheckSquare className="w-4 h-4" />;
             break;
           case "date":
-            formattedValue = value ? new Date(value).toLocaleDateString() : "Not provided";
+            formattedValue = value ? new Date(value).toLocaleDateString() : "ارائه نشده";
             icon = <Calendar className="w-4 h-4" />;
             break;
           case "relation":
-            formattedValue = value || "Not selected";
+            formattedValue = value || "انتخاب نشده";
             icon = <Link className="w-4 h-4" />;
             break;
           default:
-            formattedValue = value || "Not provided";
+            formattedValue = value || "ارائه نشده";
         }
 
         return {
@@ -185,7 +185,7 @@ export default function ShowResponse() {
         if (!form) {
           console.error('Form not found with ID:', formId);
           setFormNotFound(true);
-          toast.error("Form not found");
+          toast.error("فرم یافت نشد");
           return;
         }
 
@@ -206,7 +206,7 @@ export default function ShowResponse() {
           }
         } catch (parseError) {
           console.error("Error parsing schema:", parseError);
-          toast.error("Error loading form structure");
+          toast.error("خطا در بارگذاری ساختار فرم");
         }
         console.log('Parsed fields:', parsedFields);
         setFields(parsedFields);
@@ -225,7 +225,7 @@ export default function ShowResponse() {
         if (!response) {
           console.error('Response not found with ID:', responseId);
           setResponseNotFound(true);
-          toast.error("Response not found");
+          toast.error("پاسخ یافت نشد");
           return;
         }
 
@@ -239,7 +239,7 @@ export default function ShowResponse() {
         
         if (responseFormId !== currentFormId) {
           console.error('Response does not belong to this form');
-          toast.error("Response does not belong to this form");
+          toast.error("این پاسخ متعلق به این فرم نیست");
           setResponseNotFound(true);
           return;
         }
@@ -264,7 +264,7 @@ export default function ShowResponse() {
 
       } catch (error: any) {
         console.error("Error fetching data:", error);
-        toast.error(`Error loading data: ${error.message}`);
+        toast.error(`خطا در بارگذاری اطلاعات: ${error.message}`);
         setFormNotFound(true);
       } finally {
         setLoading(false);
@@ -321,7 +321,7 @@ export default function ShowResponse() {
             }
 
             // Get display value
-            let displayValue = `Response ${response.id?.toString()?.substring(0, 8) || 'Unknown'}...`;
+            let displayValue = `پاسخ ${response.id?.toString()?.substring(0, 8) || 'ناشناخته'}...`;
             
             if (field.relationConfig?.displayField && data[field.relationConfig.displayField]) {
               displayValue = String(data[field.relationConfig.displayField]);
@@ -355,11 +355,11 @@ export default function ShowResponse() {
 
   // Get display value for a relation field
   const getRelationDisplayValue = (field: FormField, value: string | number | undefined): string => {
-    if (!value) return "Not selected";
+    if (!value) return "انتخاب نشده";
     
     if (field.relationConfig?.formId) {
       const formData = relatedFormData[field.relationConfig.formId];
-      if (!formData) return `Loading... (ID: ${value.toString().substring(0, 8)}...)`;
+      if (!formData) return `در حال بارگذاری... (شناسه: ${value.toString().substring(0, 8)}...)`;
       
       const responseData = formData[value];
       
@@ -367,16 +367,16 @@ export default function ShowResponse() {
         return responseData.displayValue;
       }
       
-      return `ID: ${value.toString().substring(0, 8)}...`;
+      return `شناسه: ${value.toString().substring(0, 8)}...`;
     }
     
-    return `ID: ${value.toString().substring(0, 8)}...`;
+    return `شناسه: ${value.toString().substring(0, 8)}...`;
   };
 
   const handleCopyToClipboard = () => {
     const textToCopy = JSON.stringify(responseData, null, 2);
     navigator.clipboard.writeText(textToCopy);
-    toast.success("Response data copied to clipboard!");
+    toast.success("داده‌های پاسخ در کلیپ‌بورد کپی شد!");
   };
 
   const handleEdit = () => {
@@ -398,11 +398,11 @@ export default function ShowResponse() {
         setResponseToDelete(response);
         setShowDeleteDialog(true);
       } else {
-        toast.error("Could not load response for deletion");
+        toast.error("بارگذاری پاسخ برای حذف ناموفق بود");
       }
     } catch (error) {
       console.error("Error loading response for deletion:", error);
-      toast.error("Error loading response");
+      toast.error("خطا در بارگذاری پاسخ");
     }
   };
 
@@ -413,11 +413,11 @@ export default function ShowResponse() {
     setDeleting(true);
     try {
       await supabaseService.deleteResponse(responseToDelete.id);
-      toast.success("Response deleted successfully");
+      toast.success("پاسخ با موفقیت حذف شد");
       navigate(`/form/${formId}/responses`);
     } catch (error: any) {
       console.error("Delete error:", error);
-      toast.error(`Failed to delete response: ${error.message}`);
+      toast.error(`حذف پاسخ ناموفق بود: ${error.message}`);
     } finally {
       setDeleting(false);
       setShowDeleteDialog(false);
@@ -432,7 +432,7 @@ export default function ShowResponse() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('fa-IR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -464,10 +464,10 @@ export default function ShowResponse() {
             {field.value ? (
               <>
                 <CheckSquare className="w-3 h-3" />
-                Yes
+                بله
               </>
             ) : (
-              "No"
+              "خیر"
             )}
           </Badge>
         );
@@ -479,7 +479,7 @@ export default function ShowResponse() {
         );
       case "relation":
         const displayValue = getRelationDisplayValue(field.field, field.value);
-        const isLoading = displayValue.includes("Loading");
+        const isLoading = displayValue.includes("در حال بارگذاری");
         
         return (
           <div className="flex items-center gap-2">
@@ -493,7 +493,7 @@ export default function ShowResponse() {
                 </div>
                 {field.field.relationConfig?.formId && (
                   <Badge variant="outline" className="text-xs">
-                    {field.field.relationConfig.formTitle || "Related Form"}
+                    {field.field.relationConfig.formTitle || "فرم مرتبط"}
                   </Badge>
                 )}
                 <Button
@@ -569,16 +569,16 @@ export default function ShowResponse() {
           <CardContent className="pt-6 text-center">
             <Eye className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">
-              {formNotFound ? "Form Not Found" : "Response Not Found"}
+              {formNotFound ? "فرم یافت نشد" : "پاسخ یافت نشد"}
             </h2>
             <p className="text-muted-foreground mb-4">
               {formNotFound 
-                ? "The form doesn't exist or has been removed."
-                : "The response doesn't exist or has been removed."}
+                ? "این فرم وجود ندارد یا حذف شده است."
+                : "این پاسخ وجود ندارد یا حذف شده است."}
             </p>
             <Button onClick={() => navigate("/form")} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Forms List
+              بازگشت به لیست فرم‌ها
             </Button>
           </CardContent>
         </Card>
@@ -598,20 +598,20 @@ export default function ShowResponse() {
               onClick={() => navigate(`/form/${formId}/responses`)}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Responses
+              بازگشت به پاسخ‌ها
             </Button>
             
             <Badge variant="outline" className="gap-1">
               <Eye className="w-3 h-3" />
-              View Only
+              حالت مشاهده
             </Badge>
           </div>
           
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Response Details</h1>
+              <h1 className="text-3xl font-bold mb-2">جزئیات پاسخ</h1>
               <p className="text-muted-foreground">
-                Viewing response for: <span className="font-semibold">{formTitle}</span>
+                مشاهده پاسخ برای: <span className="font-semibold">{formTitle}</span>
               </p>
               {formDescription && (
                 <p className="text-sm text-muted-foreground mt-1">{formDescription}</p>
@@ -625,7 +625,7 @@ export default function ShowResponse() {
                 onClick={handleCopyToClipboard}
               >
                 <Copy className="w-4 h-4 mr-2" />
-                Copy JSON
+                کپی JSON
               </Button>
               <Button
                 variant="outline"
@@ -633,7 +633,7 @@ export default function ShowResponse() {
                 onClick={handleEdit}
               >
                 <Pencil className="w-4 h-4 mr-2" />
-                Edit
+                ویرایش
               </Button>
               <Button
                 variant="destructive"
@@ -647,12 +647,12 @@ export default function ShowResponse() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Deleting...
+                    در حال حذف...
                   </>
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
+                    حذف
                   </>
                 )}
               </Button>
@@ -666,7 +666,7 @@ export default function ShowResponse() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="w-4 h-4" />
-                    <span className="font-medium">Submitted:</span>
+                    <span className="font-medium">زمان ارسال:</span>
                   </div>
                   <p className="text-sm">{formatDate(responseCreatedAt)}</p>
                 </div>
@@ -674,7 +674,7 @@ export default function ShowResponse() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <History className="w-4 h-4" />
-                    <span className="font-medium">Last Updated:</span>
+                    <span className="font-medium">آخرین بروزرسانی:</span>
                   </div>
                   <p className="text-sm">{formatDate(responseUpdatedAt)}</p>
                 </div>
@@ -682,7 +682,7 @@ export default function ShowResponse() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="w-4 h-4" />
-                    <span className="font-medium">Response ID:</span>
+                    <span className="font-medium">شناسه پاسخ:</span>
                   </div>
                   <p className="text-sm font-mono break-all">{responseId}</p>
                 </div>
@@ -690,10 +690,10 @@ export default function ShowResponse() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileText className="w-4 h-4" />
-                    <span className="font-medium">Fields Completed:</span>
+                    <span className="font-medium">فیلدهای تکمیل شده:</span>
                   </div>
                   <p className="text-sm">
-                    {fieldValues.filter(f => f.value !== undefined && f.value !== null && f.value !== "").length} of {fieldValues.length}
+                    {fieldValues.filter(f => f.value !== undefined && f.value !== null && f.value !== "").length} از {fieldValues.length}
                   </p>
                 </div>
               </div>
@@ -704,9 +704,9 @@ export default function ShowResponse() {
         {/* Response Data */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Response Data</CardTitle>
+            <CardTitle>داده‌های پاسخ</CardTitle>
             <CardDescription>
-              All submitted form field values
+              تمام مقادیر ارسال شده فیلدهای فرم
             </CardDescription>
           </CardHeader>
           
@@ -714,12 +714,12 @@ export default function ShowResponse() {
             {fieldValues.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No Form Fields</h3>
+                <h3 className="text-lg font-semibold mb-2">بدون فیلد فرم</h3>
                 <p className="text-muted-foreground">
-                  This form doesn't have any fields or fields couldn't be loaded.
+                  این فرم هیچ فیلدی ندارد یا فیلدها قابل بارگذاری نیستند.
                 </p>
                 <div className="mt-4 p-4 bg-muted rounded-md">
-                  <p className="text-sm font-mono">Available data fields:</p>
+                  <p className="text-sm font-mono">فیلدهای داده موجود:</p>
                   <pre className="text-xs mt-2 overflow-auto">
                     {JSON.stringify(responseData, null, 2)}
                   </pre>
@@ -764,9 +764,9 @@ export default function ShowResponse() {
         {/* JSON Preview */}
         <Card>
           <CardHeader>
-            <CardTitle>Raw JSON Data</CardTitle>
+            <CardTitle>داده‌های JSON خام</CardTitle>
             <CardDescription>
-              Complete response data in JSON format
+              داده‌های کامل پاسخ در قالب JSON
             </CardDescription>
           </CardHeader>
           
@@ -790,7 +790,7 @@ export default function ShowResponse() {
         {/* Quick Actions Footer */}
         <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 p-4 bg-muted rounded-lg">
           <div className="text-sm text-muted-foreground">
-            <p>Response ID: {responseId?.substring(0, 12)}...</p>
+            <p>شناسه پاسخ: {responseId?.substring(0, 12)}...</p>
           </div>
           
           <div className="flex gap-2">
@@ -800,7 +800,7 @@ export default function ShowResponse() {
               onClick={() => navigate(`/form/${formId}/responses`)}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              All Responses
+              تمام پاسخ‌ها
             </Button>
             <Button
               variant="default"
@@ -808,7 +808,7 @@ export default function ShowResponse() {
               onClick={handleEdit}
             >
               <Pencil className="w-4 h-4 mr-2" />
-              Edit Response
+              ویرایش پاسخ
             </Button>
           </div>
         </div>

@@ -15,7 +15,7 @@ export function extractResopnseIdentifier(
   const firstField = Object.values(data)[0];
   if (firstField && String(firstField).trim()) {
     const fieldValue = String(firstField);
-    identifier = `response "${fieldValue.substring(0, 30)}${
+    identifier = `پاسخ "${fieldValue.substring(0, 30)}${
       fieldValue.length > 30 ? "..." : ""
     }"`;
   }

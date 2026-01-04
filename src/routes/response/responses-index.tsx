@@ -125,10 +125,8 @@ export default function ResponsesIndex() {
 
       try {
         const formId = field.relationConfig!.formId!;
-        // REPLACED: graphqlService.getFormResponses → supabaseService.getFormResponses
         const responses = await supabaseService.getFormResponses(formId);
 
-        // REPLACED: graphqlService.getFormById → supabaseService.getFormById
         const relatedForm = await supabaseService.getFormById(formId);
         let relatedFormFields: FormField[] = [];
 
@@ -152,15 +150,14 @@ export default function ResponsesIndex() {
         responses.forEach((response: any) => {
           let data: Record<string, any> = {};
           try {
-            // For supabase, data is already parsed
             data = response.data;
           } catch (error) {
             console.error("Error parsing related response data:", error);
           }
 
           // Get display value
-          let displayValue = `Response ${
-            response.id?.substring?.(0, 8) || "Unknown"
+          let displayValue = `پاسخ ${
+            response.id?.substring?.(0, 8) || "ناشناخته"
           }...`;
 
           if (
@@ -204,11 +201,11 @@ export default function ResponsesIndex() {
     field: FormField,
     value: string | undefined
   ): string => {
-    if (!value) return "Not selected";
+    if (!value) return "انتخاب نشده";
 
     if (field.relationConfig?.formId) {
       const formData = relatedFormData[field.relationConfig.formId];
-      if (!formData) return `Loading... (Form: ${field.relationConfig.formId})`;
+      if (!formData) return `در حال بارگذاری... (فرم: ${field.relationConfig.formId})`;
 
       // The value should be a response ID from the related form
       const responseData = formData[value];
@@ -223,10 +220,10 @@ export default function ResponsesIndex() {
         return firstResponse.displayValue;
       }
 
-      return `Response: ${value.substring(0, 8)}...`;
+      return `پاسخ: ${value.substring(0, 8)}...`;
     }
 
-    return `Form: ${value}`;
+    return `فرم: ${value}`;
   };
 
   // Get implicit operator based on field type
@@ -255,15 +252,14 @@ export default function ResponsesIndex() {
     const fetchFormDetails = async () => {
       setLoading(true);
       try {
-        // REPLACED: graphqlService.getFormById → supabaseService.getFormById
         const form = await supabaseService.getFormById(formId);
         if (!form) {
-          toast.error("Form not found");
+          toast.error("فرم یافت نشد");
           navigate("/form");
           return;
         }
 
-        setFormTitle(form.title || "Untitled Form");
+        setFormTitle(form.title || "فرم بدون عنوان");
 
         // Parse form schema to get fields
         let parsedFields: FormField[] = [];
@@ -295,7 +291,7 @@ export default function ResponsesIndex() {
         setFilters(initialFilters);
       } catch (error: any) {
         console.error("Error fetching form:", error);
-        toast.error(`Failed to load form: ${error.message}`);
+        toast.error(`بارگذاری فرم ناموفق بود: ${error.message}`);
       } finally {
         setLoading(false);
       }
@@ -374,7 +370,6 @@ export default function ResponsesIndex() {
         }
       });
 
-      // REPLACED: graphqlService.getFormResponsesWithFilters → supabaseService.getFormResponsesWithFilters
       const result = await supabaseService.getFormResponsesWithFilters(
         formId,
         activeFilters,
@@ -386,7 +381,7 @@ export default function ResponsesIndex() {
       setTotalCount(result.total);
     } catch (error: any) {
       console.error("Error fetching responses:", error);
-      toast.error(`Failed to load responses: ${error.message}`);
+      toast.error(`بارگذاری پاسخ‌ها ناموفق بود: ${error.message}`);
       setResponses([]);
       setTotalCount(0);
     } finally {
@@ -440,12 +435,12 @@ export default function ResponsesIndex() {
             onValueChange={(value) => handleFilterChange(field.id, value)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="All" />
+              <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
-              <SelectItem value="true">Yes</SelectItem>
-              <SelectItem value="false">No</SelectItem>
+              <SelectItem value="">همه</SelectItem>
+              <SelectItem value="true">بله</SelectItem>
+              <SelectItem value="false">خیر</SelectItem>
             </SelectContent>
           </Select>
         );
@@ -459,10 +454,10 @@ export default function ResponsesIndex() {
             onValueChange={(value) => handleFilterChange(field.id, value)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="All" />
+              <SelectValue placeholder="همه" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All</SelectItem>
+              <SelectItem value="__all__">همه</SelectItem>
               {field.options?.map((option) => (
                 <SelectItem key={option} value={option}>
                   {option}
@@ -481,11 +476,11 @@ export default function ResponsesIndex() {
           >
             <SelectTrigger className="w-full">
               <SelectValue
-                placeholder={loadingRelations[field.id] ? "Loading..." : "All"}
+                placeholder={loadingRelations[field.id] ? "در حال بارگذاری..." : "همه"}
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All</SelectItem>
+              <SelectItem value="__all__">همه</SelectItem>
               {field.relationConfig?.formId &&
                 relatedFormData[field.relationConfig.formId] &&
                 Object.entries(
@@ -503,7 +498,7 @@ export default function ResponsesIndex() {
         return (
           <Input
             type="number"
-            placeholder={`Filter ${field.label.toLowerCase()}...`}
+            placeholder={`فیلتر ${field.label.toLowerCase()}...`}
             value={filter.value || ""}
             onChange={(e) => handleFilterChange(field.id, e.target.value)}
           />
@@ -513,7 +508,7 @@ export default function ResponsesIndex() {
         return (
           <Input
             type="date"
-            placeholder={`Filter ${field.label.toLowerCase()}...`}
+            placeholder={`فیلتر ${field.label.toLowerCase()}...`}
             value={filter.value || ""}
             onChange={(e) => handleFilterChange(field.id, e.target.value)}
           />
@@ -524,7 +519,7 @@ export default function ResponsesIndex() {
       case "textarea":
         return (
           <Input
-            placeholder={`Search in ${field.label.toLowerCase()}...`}
+            placeholder={`جستجو در ${field.label.toLowerCase()}...`}
             value={filter.value || ""}
             onChange={(e) => handleFilterChange(field.id, e.target.value)}
           />
@@ -533,7 +528,7 @@ export default function ResponsesIndex() {
       default:
         return (
           <Input
-            placeholder={`Filter ${field.label.toLowerCase()}...`}
+            placeholder={`فیلتر ${field.label.toLowerCase()}...`}
             value={filter.value || ""}
             onChange={(e) => handleFilterChange(field.id, e.target.value)}
           />
@@ -545,7 +540,6 @@ export default function ResponsesIndex() {
     if (!responseToDelete) return;
 
     try {
-      // REPLACED: graphqlService.deleteResponse → supabaseService.deleteResponse
       await supabaseService.deleteResponse(responseToDelete.id);
 
       // Remove from local state
@@ -554,10 +548,10 @@ export default function ResponsesIndex() {
       );
       setTotalCount((prev) => prev - 1);
 
-      toast.success("Response deleted successfully");
+      toast.success("پاسخ با موفقیت حذف شد");
     } catch (error: any) {
       console.error("Delete error:", error);
-      toast.error(`Failed to delete response: ${error.message}`);
+      toast.error(`حذف پاسخ ناموفق بود: ${error.message}`);
     } finally {
       setDeleteDialogOpen(false);
       setResponseToDelete(null);
@@ -566,28 +560,28 @@ export default function ResponsesIndex() {
 
   const handleExportCSV = () => {
     if (responses.length === 0) {
-      toast.error("No data to export");
+      toast.error("داده‌ای برای خروجی وجود ندارد");
       return;
     }
 
     try {
       // Create CSV header
       const headers = [
-        "Submission Date",
+        "تاریخ ارسال",
         ...formFields.map((field) => field.label),
-        "Response ID",
+        "شناسه پاسخ",
       ];
 
       // Create CSV rows
       const rows = responses.map((response) => {
-        const date = new Date(response.created_at).toLocaleString();
+        const date = new Date(response.created_at).toLocaleString("fa-IR");
         const fieldValues = formFields.map((field) => {
           const value = response.data[field.id];
 
           // Handle relation fields specially
           if (field.type === "relation" && value) {
             const displayValue = getRelationDisplayValue(field, value);
-            if (displayValue.includes("Loading")) {
+            if (displayValue.includes("در حال بارگذاری")) {
               return value; // Fall back to form ID if not loaded yet
             }
             return displayValue;
@@ -628,15 +622,15 @@ export default function ResponsesIndex() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success(`Exported ${responses.length} responses as CSV`);
+      toast.success(`${responses.length} پاسخ با فرمت CSV خروجی گرفته شد`);
     } catch (error) {
       console.error("Export error:", error);
-      toast.error("Failed to export data");
+      toast.error("خروجی گرفتن داده ناموفق بود");
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("fa-IR", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -658,7 +652,7 @@ export default function ResponsesIndex() {
             onClick={() => {
               navigate(`/form/${formId}/responses/show/${response.id}`);
             }}
-            title="View response details"
+            title="مشاهده جزئیات پاسخ"
             className="h-8 w-8"
           >
             <Eye className="w-3.5 h-3.5" />
@@ -670,7 +664,7 @@ export default function ResponsesIndex() {
             onClick={() => {
               navigate(`/form/${formId}/responses/edit/${response.id}`);
             }}
-            title="Edit response"
+            title="ویرایش پاسخ"
             className="h-8 w-8"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -679,13 +673,12 @@ export default function ResponsesIndex() {
           <Button
             variant="ghost"
             size="icon"
-            // onClick={() => handleDeleteClick(response.id, response.data)}
             onClick={() => {
               setResponseToDelete(response);
             }}
             disabled={isDeleting}
             className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-            title="Delete response"
+            title="حذف پاسخ"
           >
             {isDeleting ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -711,14 +704,14 @@ export default function ResponsesIndex() {
             variant="outline"
             className="bg-green-50 text-green-700 border-green-200"
           >
-            ✓ Yes
+            ✓ بله
           </Badge>
         ) : (
           <Badge
             variant="outline"
             className="bg-red-50 text-red-700 border-red-200"
           >
-            ✗ No
+            ✗ خیر
           </Badge>
         );
 
@@ -734,7 +727,7 @@ export default function ResponsesIndex() {
 
       case "date":
         try {
-          return new Date(value).toLocaleDateString();
+          return new Date(value).toLocaleDateString("fa-IR");
         } catch {
           return String(value);
         }
@@ -748,7 +741,7 @@ export default function ResponsesIndex() {
             <Link className="w-3 h-3 text-muted-foreground" />
             {isLoading ? (
               <span className="text-muted-foreground text-sm italic">
-                Loading...
+                در حال بارگذاری...
               </span>
             ) : (
               <span>{displayValue}</span>
@@ -808,12 +801,12 @@ export default function ResponsesIndex() {
               <div className="flex items-center gap-4 mt-1">
                 <Badge variant="outline" className="gap-1">
                   <Calendar className="w-3 h-3" />
-                  {totalCount} total responses
+                  {totalCount} پاسخ در مجموع
                 </Badge>
                 {Object.values(filters).some((f) => f.value) && (
                   <Badge variant="secondary" className="gap-1">
                     <Filter className="w-3 h-3" />
-                    {responses.length} showing
+                    {responses.length} نمایش
                   </Badge>
                 )}
               </div>
@@ -827,14 +820,14 @@ export default function ResponsesIndex() {
               disabled={responses.length === 0}
             >
               <Download className="w-4 h-4 mr-2" />
-              Export CSV
+              خروجی CSV
             </Button>
             <Button
               className="cursor-pointer"
               onClick={() => navigate(`/form/submit/${formId}`)}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Create New {formTitle}
+              ایجاد {formTitle} جدید
             </Button>
           </div>
         </div>
@@ -847,7 +840,7 @@ export default function ResponsesIndex() {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search across all text fields..."
+                    placeholder="جستجو در تمام فیلدهای متنی..."
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -863,7 +856,7 @@ export default function ResponsesIndex() {
                     className="whitespace-nowrap"
                   >
                     <Filter className="w-4 h-4 mr-2" />
-                    {showFilters ? "Hide Filters" : "Show Filters"}
+                    {showFilters ? "پنهان کردن فیلترها" : "نمایش فیلترها"}
                   </Button>
                   {(searchTerm ||
                     Object.values(filters).some((f) => f.value)) && (
@@ -877,7 +870,7 @@ export default function ResponsesIndex() {
               {/* Dynamic Filters Panel */}
               {showFilters && formFields.length > 0 && (
                 <div className="pt-4 border-t">
-                  <h3 className="font-medium mb-4">Filter by Field</h3>
+                  <h3 className="font-medium mb-4">فیلتر بر اساس فیلد</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {formFields.map((field) => (
                       <div key={field.id} className="space-y-2">
@@ -905,11 +898,11 @@ export default function ResponsesIndex() {
           <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <CardTitle>Responses</CardTitle>
+                <CardTitle>پاسخ‌ها</CardTitle>
                 <CardDescription>
                   {responses.length === 0
-                    ? "No responses found"
-                    : `Showing ${responses.length} of ${totalCount} responses`}
+                    ? "پاسخی یافت نشد"
+                    : `نمایش ${responses.length} از ${totalCount} پاسخ`}
                 </CardDescription>
               </div>
 
@@ -918,7 +911,7 @@ export default function ResponsesIndex() {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">
-                      Rows per page:
+                      سطر در هر صفحه:
                     </span>
                     <Select
                       value={pageSize.toString()}
@@ -961,7 +954,7 @@ export default function ResponsesIndex() {
                     </Button>
 
                     <span className="px-3 text-sm">
-                      Page {currentPage} of {Math.ceil(totalCount / pageSize)}
+                      صفحه {currentPage} از {Math.ceil(totalCount / pageSize)}
                     </span>
 
                     <Button
@@ -997,16 +990,16 @@ export default function ResponsesIndex() {
               <div className="text-center py-12">
                 <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
-                  No responses found
+                  پاسخی یافت نشد
                 </h3>
                 <p className="text-muted-foreground mb-4">
                   {loading
-                    ? "Loading responses..."
-                    : "No responses match your current filters."}
+                    ? "در حال بارگذاری پاسخ‌ها..."
+                    : "هیچ پاسخی مطابق با فیلترهای فعلی یافت نشد."}
                 </p>
                 {!loading && Object.values(filters).some((f) => f.value) && (
                   <Button variant="outline" onClick={clearFilters}>
-                    Clear filters
+                    پاک کردن فیلترها
                   </Button>
                 )}
               </div>
@@ -1015,7 +1008,7 @@ export default function ResponsesIndex() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-40">Submitted At</TableHead>
+                      <TableHead className="w-40">زمان ارسال</TableHead>
                       {formFields.map((field) => (
                         <TableHead key={field.id}>
                           <div className="flex items-center gap-1">
@@ -1029,7 +1022,7 @@ export default function ResponsesIndex() {
                           </div>
                         </TableHead>
                       ))}
-                      <TableHead className="w-28">Actions</TableHead>
+                      <TableHead className="w-28">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

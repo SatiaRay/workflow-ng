@@ -64,7 +64,7 @@ function FormCard({
             )}
           </div>
           <Badge variant="outline" className="ml-2 flex-shrink-0">
-            {countFields(form.schema)} fields
+            {countFields(form.schema)} فیلد
           </Badge>
         </div>
       </CardHeader>
@@ -73,7 +73,7 @@ function FormCard({
         <div className="space-y-2">
           {fieldTypes.length > 0 ? (
             <div className="pt-2">
-              <p className="text-sm font-medium mb-2">Field Types:</p>
+              <p className="text-sm font-medium mb-2">انواع فیلدها:</p>
               <div className="flex flex-wrap gap-1">
                 {fieldTypes.slice(0, 3).map((type: string) => (
                   <Badge key={type} variant="secondary" className="text-xs">
@@ -82,14 +82,14 @@ function FormCard({
                 ))}
                 {fieldTypes.length > 3 && (
                   <Badge variant="secondary" className="text-xs">
-                    +{fieldTypes.length - 3} more
+                    +{fieldTypes.length - 3} مورد دیگر
                   </Badge>
                 )}
               </div>
             </div>
           ) : (
             <div className="text-sm text-muted-foreground italic pt-8 text-center">
-              No fields defined
+              فیلدی تعریف نشده است
             </div>
           )}
         </div>
@@ -101,7 +101,7 @@ function FormCard({
             <Link to={`/form/${form.id}/responses`}>
               <Button className="cursor-pointer" size="sm">
                 <Database className="w-4 h-4 mr-1" />
-                <span>Responses</span>
+                <span>پاسخ‌ها</span>
               </Button>
             </Link>
           </div>

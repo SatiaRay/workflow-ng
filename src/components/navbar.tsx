@@ -41,8 +41,8 @@ export default function Navbar() {
 
   // Navigation items - only show when user is logged in
   const navItems = session ? [
-    { label: "Home", href: "/" },
-    { label: "Forms", href: "/form" },
+    { label: "خانه", href: "/" },
+    { label: "فرم ها", href: "/form" },
   ] : [];
 
   const isActive = (path: string) => {
@@ -55,7 +55,7 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <div className="text-xl font-bold text-primary">Logo</div>
+            <div className="text-xl font-bold text-primary">ساتیا فرم</div>
           </Link>
 
           {/* Desktop Navigation - Only show when logged in */}

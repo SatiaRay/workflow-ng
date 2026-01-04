@@ -68,7 +68,7 @@ export default function EditForm() {
 
         if (!formData) {
           setFormNotFound(true);
-          toast.error("Form not found");
+          toast.error("فرم یافت نشد");
           return;
         }
 
@@ -107,7 +107,7 @@ export default function EditForm() {
         setOriginalForm(parsedSchema);
       } catch (error: any) {
         console.error("Error fetching form:", error);
-        toast.error(`Failed to load form: ${error.message}`);
+        toast.error(`بارگذاری فرم ناموفق بود: ${error.message}`);
         setFormNotFound(true);
       } finally {
         setLoading(false);
@@ -130,7 +130,7 @@ export default function EditForm() {
     const newField: FormField = {
       id: newId,
       type: "text", // This is now compatible with FieldType
-      label: "New Field",
+      label: "فیلد جدید",
       required: false,
       placeholder: "",
     };
@@ -159,17 +159,17 @@ export default function EditForm() {
 
   const handleSaveChanges = async () => {
     if (!formId) {
-      toast.error("Form ID is missing");
+      toast.error("شناسه فرم وجود ندارد");
       return;
     }
 
     if (!form.title.trim()) {
-      toast.error("Please enter a form title");
+      toast.error("لطفاً عنوان فرم را وارد کنید");
       return;
     }
 
     if (form.fields.length === 0) {
-      toast.error("Please add at least one field to the form");
+      toast.error("لطفاً حداقل یک فیلد به فرم اضافه کنید");
       return;
     }
 
@@ -182,9 +182,9 @@ export default function EditForm() {
 
     if (invalidFields.length > 0) {
       toast.error(
-        `Please add options to ${invalidFields.length} ${
-          invalidFields.length === 1 ? "field" : "fields"
-        }: ${invalidFields.map((f: FormField) => f.label).join(", ")}`
+        `لطفاً گزینه‌هایی به ${invalidFields.length} ${
+          invalidFields.length === 1 ? "فیلد" : "فیلد"
+        } اضافه کنید: ${invalidFields.map((f: FormField) => f.label).join(", ")}`
       );
       return;
     }
@@ -200,15 +200,15 @@ export default function EditForm() {
       const result = await supabaseService.updateForm(formId, formData);
 
       if (result) {
-        toast.success("Form updated successfully!");
+        toast.success("فرم با موفقیت به‌روزرسانی شد!");
         setOriginalForm(form);
         setHasChanges(false);
       } else {
-        toast.error("Failed to update form - no response received");
+        toast.error("به‌روزرسانی فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }
     } catch (error: any) {
       console.error("Update error:", error);
-      toast.error(`Failed to update form: ${error.message}`);
+      toast.error(`به‌روزرسانی فرم ناموفق بود: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -218,7 +218,7 @@ export default function EditForm() {
     if (
       !formId ||
       !window.confirm(
-        "Are you sure you want to delete this form? This action cannot be undone and will also delete all responses."
+        "آیا از حذف این فرم اطمینان دارید؟ این عمل قابل برگشت نیست و تمام پاسخ‌ها نیز حذف خواهند شد."
       )
     ) {
       return;
@@ -226,11 +226,11 @@ export default function EditForm() {
 
     try {
       await supabaseService.deleteForm(formId);
-      toast.success("Form deleted successfully");
+      toast.success("فرم با موفقیت حذف شد");
       navigate("/form");
     } catch (error: any) {
       console.error("Delete error:", error);
-      toast.error(`Failed to delete form: ${error.message}`);
+      toast.error(`حذف فرم ناموفق بود: ${error.message}`);
     }
   };
 
@@ -240,7 +240,7 @@ export default function EditForm() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generateJSON());
-    toast.success("JSON copied to clipboard!");
+    toast.success("JSON در کلیپ‌بورد کپی شد!");
   };
 
   const downloadJSON = () => {
@@ -253,7 +253,7 @@ export default function EditForm() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("JSON downloaded!");
+    toast.success("JSON دانلود شد!");
   };
 
   const renderPreviewInput = (field: FormField) => {
@@ -266,7 +266,7 @@ export default function EditForm() {
           <Select disabled>
             <SelectTrigger>
               <SelectValue
-                placeholder={field.placeholder || "Select an option"}
+                placeholder={field.placeholder || "یک گزینه انتخاب کنید"}
               />
             </SelectTrigger>
             <SelectContent>
@@ -312,7 +312,7 @@ export default function EditForm() {
               className="h-4 w-4"
             />
             <Label htmlFor={`preview-${field.id}`} className="font-normal">
-              {field.placeholder || "Check this box"}
+              {field.placeholder || "این گزینه را انتخاب کنید"}
             </Label>
           </div>
         );
@@ -331,7 +331,7 @@ export default function EditForm() {
           <Select disabled>
             <SelectTrigger>
               <SelectValue
-                placeholder={field.placeholder || "Select an option"}
+                placeholder={field.placeholder || "یک گزینه انتخاب کنید"}
               />
             </SelectTrigger>
             <SelectContent>
@@ -349,7 +349,7 @@ export default function EditForm() {
           <Select disabled>
             <SelectTrigger>
               <SelectValue
-                placeholder={field.placeholder || "Select related record"}
+                placeholder={field.placeholder || "رکورد مرتبط را انتخاب کنید"}
               />
             </SelectTrigger>
           </Select>
@@ -395,13 +395,13 @@ export default function EditForm() {
         <Card>
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Form Not Found</h2>
+            <h2 className="text-xl font-semibold mb-2">فرم یافت نشد</h2>
             <p className="text-muted-foreground mb-4">
-              The form you're trying to edit doesn't exist or has been removed.
+              فرمی که می‌خواهید ویرایش کنید وجود ندارد یا حذف شده است.
             </p>
             <Button onClick={() => navigate("/form")} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Forms List
+              بازگشت به لیست فرم‌ها
             </Button>
           </CardContent>
         </Card>
@@ -422,18 +422,18 @@ export default function EditForm() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Edit Form</h1>
+            <h1 className="text-3xl font-bold">ویرایش فرم</h1>
             <p className="text-muted-foreground">
-              Update your form structure and settings
+              ساختار و تنظیمات فرم خود را به‌روزرسانی کنید
             </p>
             <div className="flex items-center gap-2 mt-2">
               {hasChanges && (
                 <span className="text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                  Unsaved changes
+                  تغییرات ذخیره نشده
                 </span>
               )}
               <span className="text-sm text-muted-foreground">
-                ID: {formId?.substring(0, 8)}...
+                شناسه: {formId?.substring(0, 8)}...
               </span>
             </div>
           </div>
@@ -446,7 +446,7 @@ export default function EditForm() {
             className="gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            Delete Form
+            حذف فرم
           </Button>
         </div>
       </div>
@@ -456,14 +456,14 @@ export default function EditForm() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Form Settings</CardTitle>
+              <CardTitle>تنظیمات فرم</CardTitle>
               <CardDescription>
-                Update your form title and description
+                عنوان و توضیحات فرم خود را به‌روزرسانی کنید
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Form Title *</Label>
+                <Label htmlFor="title">عنوان فرم *</Label>
                 <Input
                   id="title"
                   value={form.title}
@@ -473,15 +473,15 @@ export default function EditForm() {
                       title: e.target.value,
                     }))
                   }
-                  placeholder="Enter form title"
+                  placeholder="عنوان فرم را وارد کنید"
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  This will be displayed to users when they fill out the form
+                  این عنوان هنگام پر کردن فرم به کاربران نمایش داده می‌شود
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description">توضیحات (اختیاری)</Label>
                 <Textarea
                   id="description"
                   value={form.description}
@@ -491,11 +491,11 @@ export default function EditForm() {
                       description: e.target.value,
                     }))
                   }
-                  placeholder="Enter form description"
+                  placeholder="توضیحات فرم را وارد کنید"
                   rows={3}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Provide additional context or instructions for users
+                  زمینه یا دستورالعمل‌های اضافی برای کاربران ارائه دهید
                 </p>
               </div>
             </CardContent>
@@ -505,14 +505,14 @@ export default function EditForm() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Form Fields</CardTitle>
+                  <CardTitle>فیلدهای فرم</CardTitle>
                   <CardDescription>
-                    Edit your form fields and their properties
+                    فیلدهای فرم و خصوصیات آن‌ها را ویرایش کنید
                   </CardDescription>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {form.fields.length} field
-                  {form.fields.length !== 1 ? "s" : ""}
+                  {form.fields.length} فیلد
+                  {form.fields.length !== 1 ? "" : ""}
                 </div>
               </div>
             </CardHeader>
@@ -534,7 +534,7 @@ export default function EditForm() {
                 className="w-full mt-6"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add New Field
+                افزودن فیلد جدید
               </Button>
             </CardContent>
           </Card>
@@ -545,8 +545,8 @@ export default function EditForm() {
           {/* Action Buttons */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
-              <CardDescription>Save or export your form</CardDescription>
+              <CardTitle>عملیات</CardTitle>
+              <CardDescription>فرم خود را ذخیره یا خروجی بگیرید</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -558,12 +558,12 @@ export default function EditForm() {
                   {saving ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
+                      در حال ذخیره...
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4 mr-2" />
-                      Save Changes
+                      ذخیره تغییرات
                     </>
                   )}
                 </Button>
@@ -576,7 +576,7 @@ export default function EditForm() {
                     disabled={form.fields.length === 0}
                   >
                     <Copy className="w-4 h-4 mr-2" />
-                    Copy JSON
+                    کپی JSON
                   </Button>
                   <Button
                     variant="outline"
@@ -585,7 +585,7 @@ export default function EditForm() {
                     disabled={form.fields.length === 0}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download JSON
+                    دانلود JSON
                   </Button>
                 </div>
               </div>
@@ -595,9 +595,9 @@ export default function EditForm() {
           {/* Form Preview */}
           <Card>
             <CardHeader>
-              <CardTitle>Form Preview</CardTitle>
+              <CardTitle>پیش‌نمایش فرم</CardTitle>
               <CardDescription>
-                How your form will look to users
+                فرم شما چگونه برای کاربران نمایش داده خواهد شد
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -615,10 +615,10 @@ export default function EditForm() {
                   {form.fields.length === 0 ? (
                     <div className="text-center py-4 border border-dashed rounded-lg">
                       <p className="text-muted-foreground">
-                        No fields added yet
+                        هنوز فیلدی اضافه نشده است
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Add fields to see preview
+                        برای مشاهده پیش‌نمایش فیلد اضافه کنید
                       </p>
                     </div>
                   ) : (
@@ -639,7 +639,7 @@ export default function EditForm() {
                 {form.fields.length > 0 && (
                   <div className="flex justify-end pt-2">
                     <Button variant="outline" disabled>
-                      Submit
+                      ارسال
                     </Button>
                   </div>
                 )}
@@ -650,15 +650,15 @@ export default function EditForm() {
           {/* JSON Output */}
           <Card>
             <CardHeader>
-              <CardTitle>Current JSON</CardTitle>
+              <CardTitle>JSON فعلی</CardTitle>
               <CardDescription>
-                Export this JSON for use in your applications
+                این JSON را برای استفاده در برنامه‌های خود خروجی بگیرید
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="text-sm text-muted-foreground mb-2">
-                  This is the structure that will be saved:
+                  این ساختاری است که ذخیره خواهد شد:
                 </div>
                 {form.fields.length > 0 ? (
                   <pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-[400px]">
@@ -667,7 +667,7 @@ export default function EditForm() {
                 ) : (
                   <div className="bg-muted p-4 rounded-md text-center">
                     <p className="text-muted-foreground">
-                      Add fields to generate JSON
+                      برای تولید JSON فیلد اضافه کنید
                     </p>
                   </div>
                 )}
@@ -682,9 +682,7 @@ export default function EditForm() {
         <Alert className="mt-6 border-amber-200 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-800">
-            Changing field types or IDs after responses have been submitted may
-            affect existing response data. Consider creating a new form instead
-            if you need major changes.
+            تغییر نوع فیلدها یا شناسه‌های آن‌ها پس از ارسال پاسخ‌ها ممکن است بر داده‌های پاسخ موجود تأثیر بگذارد. در صورت نیاز به تغییرات عمده، ایجاد یک فرم جدید را در نظر بگیرید.
           </AlertDescription>
         </Alert>
       )}

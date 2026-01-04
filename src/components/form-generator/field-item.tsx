@@ -15,15 +15,15 @@ interface FieldItemProps {
 }
 
 const fieldTypes: { value: FieldType; label: string }[] = [
-  { value: "text", label: "Text" },
-  { value: "email", label: "Email" },
-  { value: "number", label: "Number" },
-  { value: "textarea", label: "Textarea" },
-  { value: "select", label: "Dropdown (Select)" },
-  { value: "radio", label: "Radio Buttons" },
-  { value: "checkbox", label: "Checkbox" },
-  { value: "date", label: "Date" },
-  { value: "relation", label: "Form Relation" },
+  { value: "text", label: "متن" },
+  { value: "email", label: "ایمیل" },
+  { value: "number", label: "عدد" },
+  { value: "textarea", label: "متن چند خطی" },
+  { value: "select", label: "لیست کشویی" },
+  { value: "radio", label: "دکمه رادیویی" },
+  { value: "checkbox", label: "چک باکس" },
+  { value: "date", label: "تاریخ" },
+  { value: "relation", label: "ارتباط فرم" },
 ];
 
 export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps) {
@@ -77,7 +77,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
         if (schema && schema.fields && Array.isArray(schema.fields)) {
           const fields = schema.fields.map((f: any) => ({
             id: f.id,
-            label: f.label || `Field ${f.id}`,
+            label: f.label || `فیلد ${f.id}`,
             type: f.type
           }));
           setRelatedFormFields(fields);
@@ -130,7 +130,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
     // When form changes, reset display field
     if (key === 'formId') {
       const selectedForm = forms.find(f => f.id === value);
-      updates.formTitle = selectedForm?.title || "Untitled Form";
+      updates.formTitle = selectedForm?.title || "فرم بدون عنوان";
       updates.displayField = ""; // Reset display field
       // Value is always the form ID
       updates.valueField = value;
@@ -160,7 +160,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
         <div className="flex-1 space-y-4">
           {/* Field Type Selection */}
           <div className="space-y-2">
-            <Label htmlFor={`type-${field.id}`}>Field Type</Label>
+            <Label htmlFor={`type-${field.id}`}>نوع فیلد</Label>
             <Select
               value={field.type}
               onValueChange={(value: FieldType) => {
@@ -192,12 +192,12 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
 
           {/* Label Input */}
           <div className="space-y-2">
-            <Label htmlFor={`label-${field.id}`}>Label</Label>
+            <Label htmlFor={`label-${field.id}`}>برچسب</Label>
             <Input
               id={`label-${field.id}`}
               value={field.label}
               onChange={(e) => onUpdate(field.id, { label: e.target.value })}
-              placeholder="Enter field label"
+              placeholder="برچسب فیلد را وارد کنید"
               className="w-full"
             />
           </div>
@@ -205,12 +205,12 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
           {/* Placeholder Input (for text-based fields) */}
           {shouldShowPlaceholder() && (
             <div className="space-y-2">
-              <Label htmlFor={`placeholder-${field.id}`}>Placeholder</Label>
+              <Label htmlFor={`placeholder-${field.id}`}>نوشته راهنما</Label>
               <Input
                 id={`placeholder-${field.id}`}
                 value={field.placeholder || ""}
                 onChange={(e) => onUpdate(field.id, { placeholder: e.target.value })}
-                placeholder="Enter placeholder text"
+                placeholder="نوشته راهنما را وارد کنید"
                 className="w-full"
               />
             </div>
@@ -221,13 +221,13 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
             <div className="space-y-4 p-4 border rounded-lg bg-primary/5 dark:bg-primary/10">
               <div className="flex items-center gap-2">
                 <Link className="w-4 h-4 text-primary" />
-                <Label className="font-medium">Relation Configuration</Label>
+                <Label className="font-medium">تنظیمات ارتباط</Label>
               </div>
               
               <div className="space-y-3">
                 {/* Related Form Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor={`relation-form-${field.id}`}>Related Form</Label>
+                  <Label htmlFor={`relation-form-${field.id}`}>فرم مرتبط</Label>
                   <Select
                     value={field.relationConfig?.formId || ""}
                     onValueChange={(value) => handleRelationConfigChange('formId', value)}
@@ -237,16 +237,16 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
                       {loadingForms ? (
                         <div className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Loading forms...</span>
+                          <span>در حال بارگذاری فرم‌ها...</span>
                         </div>
                       ) : (
-                        <SelectValue placeholder="Select a form to relate to" />
+                        <SelectValue placeholder="یک فرم برای ایجاد ارتباط انتخاب کنید" />
                       )}
                     </SelectTrigger>
                     <SelectContent>
                       {forms.map((form) => (
                         <SelectItem key={form.id} value={form.id}>
-                          {form.title || "Untitled Form"}
+                          {form.title || "فرم بدون عنوان"}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -258,7 +258,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
                     {/* Display Field Selection */}
                     <div className="space-y-2">
                       <Label htmlFor={`display-field-${field.id}`}>
-                        Field to display in dropdown
+                        فیلدی که در لیست کشویی نمایش داده شود
                       </Label>
                       <Select
                         value={field.relationConfig?.displayField || ""}
@@ -269,10 +269,10 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
                           {loadingRelatedFields ? (
                             <div className="flex items-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Loading form fields...</span>
+                              <span>در حال بارگذاری فیلدهای فرم...</span>
                             </div>
                           ) : (
-                            <SelectValue placeholder="Select a field to display" />
+                            <SelectValue placeholder="یک فیلد برای نمایش انتخاب کنید" />
                           )}
                         </SelectTrigger>
                         <SelectContent>
@@ -285,48 +285,48 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
                           {/* Show message if no fields */}
                           {relatedFormFields.length === 0 && !loadingRelatedFields && (
                             <SelectItem value="" disabled>
-                              No fields found in the selected form
+                              فیلدی در فرم انتخاب شده یافت نشد
                             </SelectItem>
                           )}
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">
-                        The field from the related form to display in the dropdown
+                        فیلدی از فرم مرتبط که در لیست کشویی نمایش داده می‌شود
                       </p>
                     </div>
 
                     {/* Information Panel */}
                     <div className="rounded-md bg-primary/10 dark:bg-primary/20 p-3">
                       <p className="text-sm text-primary font-medium">
-                        This field will create a relation to:{" "}
+                        این فیلد یک ارتباط با ایجاد می‌کند:{" "}
                         <span className="font-semibold">
-                          {getSelectedForm()?.title || "Selected form"}
+                          {getSelectedForm()?.title || "فرم انتخاب شده"}
                         </span>
                       </p>
                       
                       {field.relationConfig?.displayField ? (
                         <>
                           <p className="text-sm text-primary mt-2">
-                            In the dropdown, users will see: <span className="font-medium">
+                            در لیست کشویی، کاربران خواهند دید: <span className="font-medium">
                               {getFieldDisplayName(field.relationConfig.displayField)}
                             </span>
                           </p>
                           <p className="text-sm text-primary mt-1">
-                            The value stored will be: <span className="font-medium">
-                              Form ID: {field.relationConfig.formId}
+                            مقداری که ذخیره خواهد شد: <span className="font-medium">
+                              شناسه فرم: {field.relationConfig.formId}
                             </span>
                           </p>
                         </>
                       ) : (
                         <p className="text-sm text-primary mt-2">
-                          ⓘ Select a field to display from the related form
+                          ⓘ یک فیلد از فرم مرتبط برای نمایش انتخاب کنید
                         </p>
                       )}
                       
                       <div className="mt-2 pt-2 border-t border-primary/20">
                         <p className="text-xs text-primary/80">
-                          <span className="font-medium">Note:</span> The stored value will always be the Form ID ({field.relationConfig.formId}). 
-                          This ensures consistent data relationships.
+                          <span className="font-medium">توجه:</span> مقدار ذخیره شده همیشه شناسه فرم ({field.relationConfig.formId}) خواهد بود. 
+                          این امر ارتباطات داده‌ای یکسانی را تضمین می‌کند.
                         </p>
                       </div>
                     </div>
@@ -339,14 +339,14 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
           {/* Options Management (for select and radio fields) */}
           {(field.type === 'select' || field.type === 'radio') && (
             <div className="space-y-3">
-              <Label>Options</Label>
+              <Label>گزینه‌ها</Label>
               <div className="space-y-2">
                 {field.options?.map((option, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <Input
                       value={option}
                       onChange={(e) => handleOptionChange(index, e.target.value)}
-                      placeholder={`Option ${index + 1}`}
+                      placeholder={`گزینه ${index + 1}`}
                       className="flex-1"
                     />
                     <Button
@@ -355,7 +355,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
                       size="icon"
                       onClick={() => handleRemoveOption(index)}
                       className="h-9 w-9 shrink-0"
-                      aria-label={`Remove option ${index + 1}`}
+                      aria-label={`حذف گزینه ${index + 1}`}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -367,7 +367,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
                   value={newOption}
                   onChange={(e) => setNewOption(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Add new option"
+                  placeholder="افزودن گزینه جدید"
                   className="flex-1"
                 />
                 <Button
@@ -377,13 +377,13 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
                   size="icon"
                   className="h-9 w-9 shrink-0"
                   disabled={!newOption.trim()}
-                  aria-label="Add option"
+                  aria-label="افزودن گزینه"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Add options for users to choose from. Press Enter or click + to add.
+                گزینه‌هایی برای انتخاب کاربران اضافه کنید. Enter را فشار دهید یا + را کلیک کنید.
               </p>
             </div>
           )}
@@ -392,10 +392,10 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
           <div className="flex items-center justify-between pt-2">
             <div className="space-y-1">
               <Label htmlFor={`required-${field.id}`} className="cursor-pointer">
-                Required Field
+                فیلد الزامی
               </Label>
               <p className="text-xs text-muted-foreground">
-                Users must fill this field to submit the form
+                کاربران باید این فیلد را پر کنند تا فرم را ارسال کنند
               </p>
             </div>
             <Switch
@@ -413,7 +413,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
           size="icon"
           onClick={() => onRemove(field.id)}
           className="ml-4 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-          aria-label="Remove field"
+          aria-label="حذف فیلد"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -424,7 +424,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
         <div className="flex items-start gap-2 rounded-md bg-warning/10 dark:bg-warning/20 p-3">
           <AlertCircle className="h-4 w-4 text-warning mt-0.5" />
           <p className="text-sm text-warning">
-            This {field.type} field has no options. Please add options above.
+            این فیلد {field.type} هیچ گزینه‌ای ندارد. لطفاً گزینه‌هایی در بالا اضافه کنید.
           </p>
         </div>
       )}
@@ -434,7 +434,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
         <div className="flex items-start gap-2 rounded-md bg-primary/10 dark:bg-primary/20 p-3">
           <Info className="h-4 w-4 text-primary mt-0.5" />
           <p className="text-sm text-primary">
-            Please select a form to create a relation.
+            لطفاً یک فرم برای ایجاد ارتباط انتخاب کنید.
           </p>
         </div>
       )}

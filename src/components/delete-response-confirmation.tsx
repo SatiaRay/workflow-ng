@@ -36,27 +36,26 @@ function DeleteResponseConfirmation({
               <AlertTriangle className="h-5 w-5 text-red-600" />
             </div>
             <AlertDialogTitle>
-              Delete {extractResopnseIdentifier(response) || "Response"}?
+              حذف {extractResopnseIdentifier(response) || "پاسخ"}؟
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            This action cannot be undone. The response will be permanently
-            deleted from the database.
+            این عمل قابل برگشت نیست. پاسخ به طور دائمی از پایگاه داده حذف خواهد شد.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={onCancel}>لغو</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
           >
             {/* <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Deleting...
+                در حال حذف...
               </> */}
             <>
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+              حذف
             </>
           </AlertDialogAction>
         </AlertDialogFooter>

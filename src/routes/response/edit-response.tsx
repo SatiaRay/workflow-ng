@@ -102,7 +102,7 @@ export default function EditResponse() {
 
         if (!form) {
           setFormNotFound(true);
-          toast.error("Form not found");
+          toast.error("فرم یافت نشد");
           return;
         }
 
@@ -122,7 +122,7 @@ export default function EditResponse() {
           }
         } catch (parseError) {
           console.error("Error parsing schema:", parseError);
-          toast.error("Error loading form structure");
+          toast.error("خطا در بارگذاری ساختار فرم");
         }
 
         setFields(parsedFields);
@@ -137,7 +137,7 @@ export default function EditResponse() {
 
         if (!response) {
           setResponseNotFound(true);
-          toast.error("Response not found");
+          toast.error("پاسخ یافت نشد");
           return;
         }
 
@@ -146,14 +146,13 @@ export default function EditResponse() {
         const currentFormId = formId.toString();
         
         if (responseFormId !== currentFormId) {
-          toast.error("Response does not belong to this form");
+          toast.error("این پاسخ متعلق به این فرم نیست");
           setResponseNotFound(true);
           return;
         }
 
         let data: Record<string, any> = {};
         try {
-          // In Supabase, data is already an object
           data = response.data || {};
         } catch (error) {
           console.error("Error parsing response data:", error);
@@ -184,7 +183,7 @@ export default function EditResponse() {
 
       } catch (error: any) {
         console.error("Error fetching data:", error);
-        toast.error(`Error loading data: ${error.message}`);
+        toast.error(`خطا در بارگذاری اطلاعات: ${error.message}`);
         setFormNotFound(true);
       } finally {
         setLoading(false);
@@ -245,7 +244,7 @@ export default function EditResponse() {
             }
 
             // Get display value from the configured display field
-            let displayValue = `Response ${String(responseId).substring(
+            let displayValue = `پاسخ ${String(responseId).substring(
               0,
               8
             )}...`;
@@ -298,7 +297,7 @@ export default function EditResponse() {
           `Error fetching related responses for field ${field.id}:`,
           error
         );
-        toast.error(`Failed to load related data for ${field.label}`);
+        toast.error(`بارگذاری داده‌های مرتبط برای ${field.label} ناموفق بود`);
 
         setRelatedResponses((prev) => ({
           ...prev,
@@ -336,7 +335,7 @@ export default function EditResponse() {
       if (field.required) {
         if (field.type === "checkbox") {
           if (!value) {
-            newErrors[field.id] = `${field.label} is required`;
+            newErrors[field.id] = `${field.label} الزامی است`;
           }
         } else if (
           field.type === "select" ||
@@ -344,10 +343,10 @@ export default function EditResponse() {
           field.type === "relation"
         ) {
           if (!value || value.toString().trim() === "") {
-            newErrors[field.id] = `Please select an option for ${field.label}`;
+            newErrors[field.id] = `لطفاً یک گزینه برای ${field.label} انتخاب کنید`;
           }
         } else if (!value || value.toString().trim() === "") {
-          newErrors[field.id] = `${field.label} is required`;
+          newErrors[field.id] = `${field.label} الزامی است`;
         }
       }
 
@@ -355,14 +354,14 @@ export default function EditResponse() {
       if (field.type === "email" && value && value.trim() !== "") {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
-          newErrors[field.id] = "Please enter a valid email address";
+          newErrors[field.id] = "لطفاً یک آدرس ایمیل معتبر وارد کنید";
         }
       }
 
       // Number validation
       if (field.type === "number" && value && value.trim() !== "") {
         if (isNaN(Number(value))) {
-          newErrors[field.id] = "Please enter a valid number";
+          newErrors[field.id] = "لطفاً یک عدد معتبر وارد کنید";
         }
       }
 
@@ -372,7 +371,7 @@ export default function EditResponse() {
         const responses = relatedResponses[field.id] || [];
         const selectedResponse = responses.find((r) => r.id === value);
         if (!selectedResponse) {
-          newErrors[field.id] = "Please select a valid option";
+          newErrors[field.id] = "لطفاً یک گزینه معتبر انتخاب کنید";
         }
       }
     });
@@ -385,12 +384,12 @@ export default function EditResponse() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error("Please fix the errors in the form");
+      toast.error("لطفاً خطاهای موجود در فرم را برطرف کنید");
       return;
     }
 
     if (!responseId) {
-      toast.error("Response ID is missing");
+      toast.error("شناسه پاسخ وجود ندارد");
       return;
     }
 
@@ -400,14 +399,14 @@ export default function EditResponse() {
 
       if (result) {
         setIsUpdated(true);
-        toast.success("Response updated successfully!");
+        toast.success("پاسخ با موفقیت به‌روزرسانی شد!");
         setErrors({});
       } else {
-        toast.error("Failed to update response - no response received");
+        toast.error("به‌روزرسانی پاسخ ناموفق بود - هیچ پاسخی دریافت نشد");
       }
     } catch (error: any) {
       console.error("Update error:", error);
-      toast.error(`Failed to update: ${error.message}`);
+      toast.error(`به‌روزرسانی ناموفق بود: ${error.message}`);
     } finally {
       setUpdating(false);
     }
@@ -459,8 +458,8 @@ export default function EditResponse() {
               <SelectValue
                 placeholder={
                   hasOptions
-                    ? field.placeholder || "Select an option"
-                    : "No options available"
+                    ? field.placeholder || "یک گزینه انتخاب کنید"
+                    : "گزینه‌ای موجود نیست"
                 }
               />
             </SelectTrigger>
@@ -479,7 +478,7 @@ export default function EditResponse() {
       case "relation":
         const responses = relatedResponses[field.id] || [];
         const hasResponses = responses.length > 0;
-        const relationFormTitle = field.relationConfig?.formTitle || "Related Form";
+        const relationFormTitle = field.relationConfig?.formTitle || "فرم مرتبط";
 
         return (
           <div className="space-y-2">
@@ -489,31 +488,31 @@ export default function EditResponse() {
               options={responses.map((response) => ({
                 value: response.id,
                 label: response.displayValue,
-                description: `Submitted ${new Date(
+                description: `ارسال شده در ${new Date(
                   response.created_at
-                ).toLocaleDateString()}`,
+                ).toLocaleDateString("fa-IR")}`,
               }))}
               placeholder={
                 isLoading
-                  ? "Loading options..."
+                  ? "در حال بارگذاری گزینه‌ها..."
                   : hasResponses
-                  ? field.placeholder || `Select from ${relationFormTitle}`
-                  : "No responses available"
+                  ? field.placeholder || `انتخاب از ${relationFormTitle}`
+                  : "پاسخی موجود نیست"
               }
               disabled={isLoading || !hasResponses}
               className={fieldError ? "border-red-500" : ""}
-              emptyMessage="No responses found in related form"
+              emptyMessage="هیج پاسخی در فرم مرتبط یافت نشد"
             />
             {field.relationConfig?.formTitle && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Link className="w-3 h-3" />
-                <span>Linked to: {field.relationConfig.formTitle}</span>
+                <span>مرتبط با: {field.relationConfig.formTitle}</span>
                 {field.required && <span className="text-red-500 ml-1">*</span>}
               </div>
             )}
             {!isLoading && hasResponses && (
               <p className="text-xs text-muted-foreground">
-                Selecting an option will create a relation to {relationFormTitle}
+                انتخاب یک گزینه یک ارتباط با {relationFormTitle} ایجاد می‌کند
               </p>
             )}
           </div>
@@ -547,7 +546,7 @@ export default function EditResponse() {
             ))}
             {!field.options || field.options.length === 0 ? (
               <p className="text-sm text-muted-foreground italic">
-                No options available
+                گزینه‌ای موجود نیست
               </p>
             ) : null}
           </RadioGroup>
@@ -657,19 +656,19 @@ export default function EditResponse() {
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">
-              {formNotFound ? "Form Not Found" : "Response Not Found"}
+              {formNotFound ? "فرم یافت نشد" : "پاسخ یافت نشد"}
             </h2>
             <p className="text-muted-foreground mb-4">
               {formNotFound 
-                ? "The form doesn't exist or has been removed."
-                : "The response doesn't exist or has been removed."}
+                ? "این فرم وجود ندارد یا حذف شده است."
+                : "این پاسخ وجود ندارد یا حذف شده است."}
             </p>
             <Button 
               onClick={() => navigate(`/form/${formId}/responses`)} 
               variant="outline"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Responses List
+              بازگشت به لیست پاسخ‌ها
             </Button>
           </CardContent>
         </Card>
@@ -691,16 +690,16 @@ export default function EditResponse() {
               </div>
 
               <h1 className="text-3xl font-bold mb-4 text-green-700">
-                Successfully Updated!
+                با موفقیت به‌روزرسانی شد!
               </h1>
 
               <p className="text-lg text-muted-foreground mb-2">
-                Your response for{" "}
-                <span className="font-semibold">{formTitle}</span> has been updated.
+                پاسخ شما برای{" "}
+                <span className="font-semibold">{formTitle}</span> به‌روزرسانی شد.
               </p>
 
               <p className="text-muted-foreground mb-8">
-                The changes have been saved successfully.
+                تغییرات با موفقیت ذخیره شدند.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -710,7 +709,7 @@ export default function EditResponse() {
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <ArrowLeft className="w-5 h-5 mr-2" />
-                  Back to Responses
+                  بازگشت به پاسخ‌ها
                 </Button>
 
                 <Button
@@ -719,13 +718,13 @@ export default function EditResponse() {
                   size="lg"
                 >
                   <PlusCircle className="w-5 h-5 mr-2" />
-                  Create New Response
+                  ایجاد پاسخ جدید
                 </Button>
               </div>
 
               <div className="mt-8 pt-6 border-t">
                 <p className="text-sm text-muted-foreground">
-                  You can view this response in the responses list.
+                  می‌توانید این پاسخ را در لیست پاسخ‌ها مشاهده کنید.
                 </p>
               </div>
             </CardContent>
@@ -741,7 +740,7 @@ export default function EditResponse() {
                 className="mb-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Responses
+                بازگشت به پاسخ‌ها
               </Button>
 
               <h1 className="text-3xl font-bold mb-2">{formTitle}</h1>
@@ -752,13 +751,13 @@ export default function EditResponse() {
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <span>Editing existing response • ID: {responseId?.substring(0, 8)}...</span>
+                <span>ویرایش پاسخ موجود • شناسه: {responseId?.substring(0, 8)}...</span>
               </div>
 
               {fields.length === 0 && (
                 <Alert>
                   <AlertDescription>
-                    This form has no fields to edit.
+                    این فرم فیلدی برای ویرایش ندارد.
                   </AlertDescription>
                 </Alert>
               )}
@@ -768,9 +767,9 @@ export default function EditResponse() {
             {fields.length > 0 ? (
               <Card className="mb-8">
                 <CardHeader>
-                  <CardTitle>Edit Response</CardTitle>
+                  <CardTitle>ویرایش پاسخ</CardTitle>
                   <CardDescription>
-                    Update the form response values below
+                    مقادیر پاسخ فرم را در زیر به‌روزرسانی کنید
                   </CardDescription>
                 </CardHeader>
 
@@ -800,7 +799,7 @@ export default function EditResponse() {
 
                           {field.type === "email" && !errors[field.id] && (
                             <p className="text-xs text-muted-foreground">
-                              We'll never share your email with anyone else.
+                              هرگز ایمیل شما را با کسی به اشتراک نخواهیم گذاشت.
                             </p>
                           )}
 
@@ -831,12 +830,12 @@ export default function EditResponse() {
                           {updating ? (
                             <>
                               <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                              Updating...
+                              در حال به‌روزرسانی...
                             </>
                           ) : (
                             <>
                               <Save className="w-5 h-5 mr-2" />
-                              Update Response
+                              به‌روزرسانی پاسخ
                             </>
                           )}
                         </Button>
@@ -845,14 +844,14 @@ export default function EditResponse() {
                           <p className="text-xs text-muted-foreground">
                             {fields.filter((f) => f.required).length > 0 ? (
                               <>
-                                <span className="text-red-500">*</span> Required
-                                fields
+                                <span className="text-red-500">*</span> فیلدهای
+                                الزامی
                                 {" • "}
                                 {fields.filter((f) => f.required).length}{" "}
-                                required field(s)
+                                فیلد الزامی
                               </>
                             ) : (
-                              "All fields are optional"
+                              "تمام فیلدها اختیاری هستند"
                             )}
                           </p>
                         </div>
@@ -865,16 +864,16 @@ export default function EditResponse() {
               <Card>
                 <CardContent className="pt-6 text-center">
                   <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Empty Form</h3>
+                  <h3 className="text-lg font-semibold mb-2">فرم خالی</h3>
                   <p className="text-muted-foreground mb-4">
-                    This form doesn't have any fields to edit.
+                    این فرم هیچ فیلدی برای ویرایش ندارد.
                   </p>
                   <Button 
                     onClick={() => navigate(`/form/${formId}/responses`)} 
                     variant="outline"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Responses List
+                    بازگشت به لیست پاسخ‌ها
                   </Button>
                 </CardContent>
               </Card>
@@ -883,7 +882,7 @@ export default function EditResponse() {
             {/* Form Info Footer */}
             <div className="mt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                This form is powered by FormBuilder • Your response updates are secure and private
+                این فرم توسط ساتیا فرم پشتیبانی می‌شود • به‌روزرسانی‌های پاسخ شما امن و خصوصی هستند
               </p>
             </div>
           </>

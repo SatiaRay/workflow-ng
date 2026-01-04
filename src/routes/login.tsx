@@ -55,7 +55,7 @@ export default function LoginPage() {
     setLoading(true);
 
     if (!email || !password) {
-      toast.error("Please fill in all fields");
+      toast.error("لطفاً تمام فیلدها را پر کنید");
       setLoading(false);
       return;
     }
@@ -69,11 +69,11 @@ export default function LoginPage() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("Successfully logged in!");
+        toast.success("با موفقیت وارد شدید!");
         navigate("/");
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred");
+      toast.error(error.message || "خطایی رخ داده است");
     } finally {
       setLoading(false);
     }
@@ -88,14 +88,14 @@ export default function LoginPage() {
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEnd className="size-6" />
               </div>
-              <h1 className="text-xl font-bold">Welcome to FormBuilder</h1>
+              <h1 className="text-xl font-bold">به ساتیا فرم خوش آمدید</h1>
               <FieldDescription>
-                Enter your credentials to login
+                برای ورود اطلاعات حساب کاربری خود را وارد کنید
               </FieldDescription>
             </div>
             
             <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
+              <FieldLabel htmlFor="email">ایمیل</FieldLabel>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -111,7 +111,7 @@ export default function LoginPage() {
             </Field>
             
             <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <FieldLabel htmlFor="password">رمز عبور</FieldLabel>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -131,10 +131,10 @@ export default function LoginPage() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    در حال ورود...
                   </>
                 ) : (
-                  "Sign In"
+                  "ورود"
                 )}
               </Button>
             </Field>
@@ -142,15 +142,15 @@ export default function LoginPage() {
         </form>
         
         <FieldDescription className="px-6 text-center">
-          By clicking continue, you agree to our{" "}
+          با ادامه دادن، شما با{" "}
           <a href="#" className="text-primary hover:underline">
-            Terms of Service
+            شرایط استفاده
           </a>{" "}
-          and{" "}
+          و{" "}
           <a href="#" className="text-primary hover:underline">
-            Privacy Policy
-          </a>
-          .
+            سیاست حفظ حریم خصوصی
+          </a>{" "}
+          ما موافقت می‌کنید.
         </FieldDescription>
       </div>
     </div>

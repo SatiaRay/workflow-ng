@@ -53,7 +53,7 @@ export default function FormList() {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) {
+    if (!confirm(`آیا از حذف "${title}" اطمینان دارید؟`)) {
       return;
     }
 
@@ -61,12 +61,12 @@ export default function FormList() {
     try {
       // Changed from graphqlService.deleteForm(id) to supabaseService.deleteForm(id)
       await supabaseService.deleteForm(id);
-      toast.success(`Form "${title}" deleted successfully`);
+      toast.success(`فرم "${title}" با موفقیت حذف شد`);
 
       // Remove the deleted form from local state
       setForms((prev) => prev.filter((form) => form.id !== id));
     } catch (err: any) {
-      toast.error("Failed to delete form");
+      toast.error("حذف فرم ناموفق بود");
       console.error("Delete error:", err);
     } finally {
       setDeletingId(null);
@@ -78,9 +78,9 @@ export default function FormList() {
       const schemaToCopy =
         typeof schema === "string" ? JSON.parse(schema) : schema;
       navigator.clipboard.writeText(JSON.stringify(schemaToCopy, null, 2));
-      toast.success(`Schema for "${title}" copied to clipboard`);
+      toast.success(`ساختار فرم "${title}" در کلیپ‌بورد کپی شد`);
     } catch (err) {
-      toast.error("Failed to copy schema");
+      toast.error("کپی ساختار ناموفق بود");
       console.error("Copy error:", err);
     }
   };
@@ -138,11 +138,11 @@ export default function FormList() {
     return (
       <div className="container mx-auto p-6">
         <Alert variant="destructive">
-          <AlertDescription>Error loading forms: {error}</AlertDescription>
+          <AlertDescription>خطا در بارگذاری فرم‌ها: {error}</AlertDescription>
         </Alert>
         <Button onClick={fetchForms} variant="outline" className="mt-4">
           <RefreshCw className="w-4 h-4 mr-2" />
-          Retry
+          تلاش مجدد
         </Button>
       </div>
     );
@@ -154,21 +154,21 @@ export default function FormList() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">My Forms</h1>
+            <h1 className="text-3xl font-bold">فرم‌های من</h1>
             <p className="text-muted-foreground">
-              Create, manage, and view all your form schemas
+              ساختار فرم‌های خود را ایجاد، مدیریت و مشاهده کنید
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={fetchForms}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
+              به‌روزرسانی
             </Button>
             <Link to="/form/generator">
               <Button className="cursor-pointer">
                 <Plus className="w-4 h-4 mr-2" />
-                Create Form
+                ایجاد فرم
               </Button>
             </Link>
           </div>
@@ -179,14 +179,14 @@ export default function FormList() {
           <Card>
             <CardContent className="pt-12 pb-12 text-center">
               <FileText className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Forms Yet</h3>
+              <h3 className="text-xl font-semibold mb-2">هنوز فرمی وجود ندارد</h3>
               <p className="text-muted-foreground mb-6">
-                Create your first form to get started
+                برای شروع اولین فرم خود را ایجاد کنید
               </p>
               <Link to="/form/generator">
                 <Button className="cursor-pointer">
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Form
+                  ایجاد اولین فرم
                 </Button>
               </Link>
             </CardContent>
@@ -219,7 +219,7 @@ export default function FormList() {
                         )}
                       </div>
                       <Badge variant="outline" className="ml-2 flex-shrink-0">
-                        {countFields(form.schema)} fields
+                        {countFields(form.schema)} فیلد
                       </Badge>
                     </div>
                   </CardHeader>
@@ -229,7 +229,7 @@ export default function FormList() {
                       {fieldTypes.length > 0 ? (
                         <div className="pt-2">
                           <p className="text-sm font-medium mb-2">
-                            Field Types:
+                            انواع فیلدها:
                           </p>
                           <div className="flex flex-wrap gap-1">
                             {fieldTypes.slice(0, 3).map((type: string) => (
@@ -243,14 +243,14 @@ export default function FormList() {
                             ))}
                             {fieldTypes.length > 3 && (
                               <Badge variant="secondary" className="text-xs">
-                                +{fieldTypes.length - 3} more
+                                +{fieldTypes.length - 3} مورد دیگر
                               </Badge>
                             )}
                           </div>
                         </div>
                       ) : (
                         <div className="text-sm text-muted-foreground italic pt-8 text-center">
-                          No fields defined
+                          فیلدی تعریف نشده است
                         </div>
                       )}
                     </div>
@@ -263,7 +263,7 @@ export default function FormList() {
                           <Button className="cursor-pointer" size="sm">
                             <Database className="w-4 h-4 mr-1" />
                             <span className="md:hidden xl:inline">
-                              Responses
+                              پاسخ‌ها
                             </span>
                           </Button>
                         </Link>

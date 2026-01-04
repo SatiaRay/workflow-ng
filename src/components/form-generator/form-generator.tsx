@@ -28,15 +28,15 @@ export type { FormSchema, FormField };
 
 export default function FormGenerator() {
   const [form, setForm] = useState<FormSchema>({
-    title: "Customer Feedback Survey",
-    description: "A simple form to collect customer opinions",
+    title: "نظرسنجی مشتریان",
+    description: "یک فرم ساده برای جمع‌آوری نظرات مشتریان",
     fields: [
       {
         id: "field_001",
         type: "text",
-        label: "Name",
+        label: "نام",
         required: true,
-        placeholder: "Enter name ...",
+        placeholder: "نام را وارد کنید ...",
       },
     ],
   });
@@ -48,7 +48,7 @@ export default function FormGenerator() {
     const newField: FormField = {
       id: newId,
       type: "text",
-      label: "New Field",
+      label: "فیلد جدید",
       required: false,
       placeholder: "",
     };
@@ -81,7 +81,7 @@ export default function FormGenerator() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generateJSON());
-    toast.success("JSON copied to clipboard!");
+    toast.success("JSON در کلیپ‌بورد کپی شد!");
   };
 
   const downloadJSON = () => {
@@ -94,17 +94,17 @@ export default function FormGenerator() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("JSON downloaded!");
+    toast.success("JSON دانلود شد!");
   };
 
   const handleSaveToDatabase = async () => {
     if (!form.title.trim()) {
-      toast.error("Please enter a form title");
+      toast.error("لطفاً عنوان فرم را وارد کنید");
       return;
     }
 
     if (form.fields.length === 0) {
-      toast.error("Please add at least one field to the form");
+      toast.error("لطفاً حداقل یک فیلد به فرم اضافه کنید");
       return;
     }
 
@@ -117,9 +117,9 @@ export default function FormGenerator() {
 
     if (invalidFields.length > 0) {
       toast.error(
-        `Please add options to ${invalidFields.length} ${
-          invalidFields.length === 1 ? "field" : "fields"
-        }: ${invalidFields.map((f) => f.label).join(", ")}`
+        `لطفاً گزینه‌هایی به ${invalidFields.length} ${
+          invalidFields.length === 1 ? "فیلد" : "فیلد"
+        } اضافه کنید: ${invalidFields.map((f) => f.label).join(", ")}`
       );
       return;
     }
@@ -139,7 +139,7 @@ export default function FormGenerator() {
       const result = await supabaseService.createForm(formData);
 
       if (result) {
-        toast.success("Form saved successfully to database!");
+        toast.success("فرم با موفقیت در پایگاه داده ذخیره شد!");
 
         // Optional: Reset form after successful save
         // setForm({
@@ -148,11 +148,11 @@ export default function FormGenerator() {
         //   fields: []
         // });
       } else {
-        toast.error("Failed to save form - no response received");
+        toast.error("ذخیره فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }
     } catch (error: any) {
       console.error("Save error:", error);
-      toast.error(`Failed to save form: ${error.message}`);
+      toast.error(`ذخیره فرم ناموفق بود: ${error.message}`);
     } finally {
       setSaving(false);
     }
@@ -167,12 +167,12 @@ export default function FormGenerator() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Link className="w-4 h-4" />
               <span>
-                Linked to: {field.relationConfig?.formTitle || "Related Form"}
+                مرتبط با: {field.relationConfig?.formTitle || "فرم مرتبط"}
               </span>
             </div>
             <Select disabled>
               <SelectTrigger>
-                <SelectValue placeholder="Select from related form..." />
+                <SelectValue placeholder="از فرم مرتبط انتخاب کنید..." />
               </SelectTrigger>
             </Select>
           </div>
@@ -186,7 +186,7 @@ export default function FormGenerator() {
           <Select disabled>
             <SelectTrigger>
               <SelectValue
-                placeholder={field.placeholder || "Select an option"}
+                placeholder={field.placeholder || "یک گزینه انتخاب کنید"}
               />
             </SelectTrigger>
             <SelectContent>
@@ -232,7 +232,7 @@ export default function FormGenerator() {
               className="h-4 w-4"
             />
             <Label htmlFor={`preview-${field.id}`} className="font-normal">
-              {field.placeholder || "Check this box"}
+              {field.placeholder || "این گزینه را انتخاب کنید"}
             </Label>
           </div>
         );
@@ -251,9 +251,9 @@ export default function FormGenerator() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Form Generator</h1>
+          <h1 className="text-3xl font-bold">سازنده فرم</h1>
           <p className="text-muted-foreground">
-            Build forms visually and export as JSON or save to database
+            فرم‌ها را بصری بسازید و به عنوان JSON خروجی بگیرید یا در پایگاه داده ذخیره کنید
           </p>
         </div>
       </div>
@@ -263,29 +263,29 @@ export default function FormGenerator() {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Form Settings</CardTitle>
+              <CardTitle>تنظیمات فرم</CardTitle>
               <CardDescription>
-                Configure your form title and description
+                عنوان و توضیحات فرم خود را پیکربندی کنید
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Form Title *</Label>
+                <Label htmlFor="title">عنوان فرم *</Label>
                 <Input
                   id="title"
                   value={form.title}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, title: e.target.value }))
                   }
-                  placeholder="Enter form title"
+                  placeholder="عنوان فرم را وارد کنید"
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  This will be displayed to users when they fill out the form
+                  این عنوان هنگام پر کردن فرم به کاربران نمایش داده می‌شود
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+                <Label htmlFor="description">توضیحات (اختیاری)</Label>
                 <Textarea
                   id="description"
                   value={form.description}
@@ -295,11 +295,11 @@ export default function FormGenerator() {
                       description: e.target.value,
                     }))
                   }
-                  placeholder="Enter form description"
+                  placeholder="توضیحات فرم را وارد کنید"
                   rows={3}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Provide additional context or instructions for users
+                  زمینه یا دستورالعمل‌های اضافی برای کاربران ارائه دهید
                 </p>
               </div>
             </CardContent>
@@ -309,14 +309,14 @@ export default function FormGenerator() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Form Fields</CardTitle>
+                  <CardTitle>فیلدهای فرم</CardTitle>
                   <CardDescription>
-                    Add and configure form fields
+                    فیلدهای فرم را اضافه و پیکربندی کنید
                   </CardDescription>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {form.fields.length} field
-                  {form.fields.length !== 1 ? "s" : ""}
+                  {form.fields.length} فیلد
+                  {form.fields.length !== 1 ? "" : ""}
                 </div>
               </div>
             </CardHeader>
@@ -338,7 +338,7 @@ export default function FormGenerator() {
                 className="w-full mt-6"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add New Field
+                افزودن فیلد جدید
               </Button>
             </CardContent>
           </Card>
@@ -349,8 +349,8 @@ export default function FormGenerator() {
           {/* Action Buttons */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
-              <CardDescription>Save or export your form</CardDescription>
+              <CardTitle>عملیات</CardTitle>
+              <CardDescription>فرم خود را ذخیره یا خروجی بگیرید</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -362,12 +362,12 @@ export default function FormGenerator() {
                   {saving ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
+                      در حال ذخیره...
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4 mr-2" />
-                      Save to Database
+                      ذخیره در پایگاه داده
                     </>
                   )}
                 </Button>
@@ -380,7 +380,7 @@ export default function FormGenerator() {
                     disabled={form.fields.length === 0}
                   >
                     <Copy className="w-4 h-4 mr-2" />
-                    Copy JSON
+                    کپی JSON
                   </Button>
                   <Button
                     variant="outline"
@@ -389,7 +389,7 @@ export default function FormGenerator() {
                     disabled={form.fields.length === 0}
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download JSON
+                    دانلود JSON
                   </Button>
                 </div>
               </div>
@@ -399,9 +399,9 @@ export default function FormGenerator() {
           {/* Form Preview */}
           <Card>
             <CardHeader>
-              <CardTitle>Form Preview</CardTitle>
+              <CardTitle>پیش‌نمایش فرم</CardTitle>
               <CardDescription>
-                How your form will look to users
+                فرم شما چگونه برای کاربران نمایش داده خواهد شد
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -419,10 +419,10 @@ export default function FormGenerator() {
                   {form.fields.length === 0 ? (
                     <div className="text-center py-4 border border-dashed rounded-lg">
                       <p className="text-muted-foreground">
-                        No fields added yet
+                        هنوز فیلدی اضافه نشده است
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Add fields to see preview
+                        برای مشاهده پیش‌نمایش فیلد اضافه کنید
                       </p>
                     </div>
                   ) : (
@@ -443,7 +443,7 @@ export default function FormGenerator() {
                 {form.fields.length > 0 && (
                   <div className="flex justify-end pt-2">
                     <Button variant="outline" disabled>
-                      Submit
+                      ارسال
                     </Button>
                   </div>
                 )}
@@ -454,15 +454,15 @@ export default function FormGenerator() {
           {/* JSON Output */}
           <Card>
             <CardHeader>
-              <CardTitle>JSON Output</CardTitle>
+              <CardTitle>خروجی JSON</CardTitle>
               <CardDescription>
-                Export this JSON for use in your applications
+                این JSON را برای استفاده در برنامه‌های خود خروجی بگیرید
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="text-sm text-muted-foreground mb-2">
-                  This is the exact structure that will be saved:
+                  این همان ساختاری است که ذخیره خواهد شد:
                 </div>
                 {form.fields.length > 0 ? (
                   <pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-[400px]">
@@ -471,7 +471,7 @@ export default function FormGenerator() {
                 ) : (
                   <div className="bg-muted p-4 rounded-md text-center">
                     <p className="text-muted-foreground">
-                      Add fields to generate JSON
+                      برای تولید JSON فیلد اضافه کنید
                     </p>
                   </div>
                 )}
