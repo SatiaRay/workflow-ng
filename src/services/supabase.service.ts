@@ -1,18 +1,10 @@
 // src/services/supabase.service.ts
 import { supabase } from "@/lib/supabase-client";
-
-export interface Form {
-  id: string | number; // Allow both string and number
-  title: string;
-  description: string | null;
-  schema: any;
-  created_at: string;
-  updated_at: string;
-}
+import type { Form } from "@/types/form";
 
 export interface FormResponse {
-  id: string | number; // Allow both string and number
-  form_id: string | number; // Allow both string and number
+  id: number;
+  form_id: number;
   data: any;
   created_at: string;
   updated_at?: string;
@@ -40,10 +32,15 @@ class SupabaseService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Transform to include nodeId
+    return (data || []).map((form: any) => ({
+      ...form,
+      nodeId: `form_${form.id}`,
+    }));
   }
 
-  async getFormById(id: string): Promise<Form | null> {
+  async getFormById(id: string | number): Promise<Form | null> {
     const { data, error } = await supabase
       .from('forms')
       .select('*')
@@ -54,7 +51,13 @@ class SupabaseService {
       console.error('Error fetching form:', error);
       return null;
     }
-    return data;
+    
+    if (!data) return null;
+    
+    return {
+      ...data,
+      nodeId: `form_${data.id}`,
+    };
   }
 
   async createForm(formData: {
@@ -75,10 +78,16 @@ class SupabaseService {
       .single();
 
     if (error) throw error;
-    return data;
+    
+    if (!data) return null;
+    
+    return {
+      ...data,
+      nodeId: `form_${data.id}`,
+    };
   }
 
-  async updateForm(id: string, formData: {
+  async updateForm(id: string | number, formData: {
     title?: string;
     description?: string | null;
     schema?: any;
@@ -94,10 +103,16 @@ class SupabaseService {
       .single();
 
     if (error) throw error;
-    return data;
+    
+    if (!data) return null;
+    
+    return {
+      ...data,
+      nodeId: `form_${data.id}`,
+    };
   }
 
-  async deleteForm(id: string): Promise<void> {
+  async deleteForm(id: string | number): Promise<void> {
     const { error } = await supabase
       .from('forms')
       .delete()
@@ -107,7 +122,7 @@ class SupabaseService {
   }
 
   // Form responses operations
-  async getFormResponses(formId: string): Promise<FormResponse[]> {
+  async getFormResponses(formId: string | number): Promise<FormResponse[]> {
     const { data, error } = await supabase
       .from('responses')
       .select('*')
@@ -118,7 +133,7 @@ class SupabaseService {
     return data || [];
   }
 
-  async getResponseById(responseId: string): Promise<FormResponse | null> {
+  async getResponseById(responseId: string | number): Promise<FormResponse | null> {
     const { data, error } = await supabase
       .from('responses')
       .select('*')
@@ -132,7 +147,7 @@ class SupabaseService {
     return data;
   }
 
-  async submitFormResponse(formId: string, data: Record<string, any>): Promise<FormResponse | null> {
+  async submitFormResponse(formId: string | number, data: Record<string, any>): Promise<FormResponse | null> {
     const { data: response, error } = await supabase
       .from('responses')
       .insert([
@@ -149,7 +164,7 @@ class SupabaseService {
     return response;
   }
 
-  async updateResponse(responseId: string, data: Record<string, any>): Promise<FormResponse | null> {
+  async updateResponse(responseId: string | number, data: Record<string, any>): Promise<FormResponse | null> {
     const { data: response, error } = await supabase
       .from('responses')
       .update({
@@ -164,7 +179,7 @@ class SupabaseService {
     return response;
   }
 
-  async deleteResponse(responseId: string): Promise<void> {
+  async deleteResponse(responseId: string | number): Promise<void> {
     const { error } = await supabase
       .from('responses')
       .delete()
@@ -175,7 +190,7 @@ class SupabaseService {
 
   // Get responses with filters and pagination
   async getFormResponsesWithFilters(
-    formId: string,
+    formId: string | number,
     filters: Record<string, Filter>,
     page: number = 1,
     pageSize: number = 10
@@ -248,6 +263,34 @@ class SupabaseService {
       pageSize,
       totalPages: Math.ceil((count || 0) / pageSize),
     };
+  }
+
+  // Helper method to parse form schema
+  parseFormSchema(schema: any): any {
+    if (!schema) {
+      return { title: '', description: '', fields: [] };
+    }
+
+    try {
+      if (typeof schema === 'string') {
+        return JSON.parse(schema);
+      }
+      return schema;
+    } catch (error) {
+      console.error('Error parsing form schema:', error);
+      return { title: '', description: '', fields: [] };
+    }
+  }
+
+  // Helper to get form fields from schema
+  getFormFields(form: Form): any[] {
+    try {
+      const schema = this.parseFormSchema(form.schema);
+      return schema?.fields || [];
+    } catch (error) {
+      console.error('Error getting form fields:', error);
+      return [];
+    }
   }
 }
 

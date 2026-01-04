@@ -12,15 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Eye,
   Edit,
   Trash2,
   Copy,
-  Calendar,
   FileText,
   RefreshCw,
   Plus,
-  LayersPlus,
   Database,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -86,16 +83,6 @@ export default function FormList() {
       toast.error("Failed to copy schema");
       console.error("Copy error:", err);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const parseSchema = (schema: any) => {
@@ -208,10 +195,10 @@ export default function FormList() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {forms.map((form: Form) => {
               const parsedSchema = parseSchema(form.schema);
-              const fieldTypes = parsedSchema?.fields
-                ? Array.from(
+              const fieldTypes: string[] = parsedSchema?.fields
+                ? (Array.from(
                     new Set(parsedSchema.fields.map((f: any) => f.type))
-                  )
+                  ) as string[])
                 : [];
 
               return (
@@ -275,7 +262,9 @@ export default function FormList() {
                         <Link to={`/form/${form.id}/responses`}>
                           <Button className="cursor-pointer" size="sm">
                             <Database className="w-4 h-4 mr-1" />
-                            <span className="md:hidden xl:inline">Responses</span>
+                            <span className="md:hidden xl:inline">
+                              Responses
+                            </span>
                           </Button>
                         </Link>
                       </div>

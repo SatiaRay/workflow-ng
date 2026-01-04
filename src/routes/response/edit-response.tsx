@@ -26,7 +26,6 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   ArrowLeft,
   CheckCircle,
-  Send,
   RefreshCw,
   AlertCircle,
   PlusCircle,
@@ -196,6 +195,8 @@ export default function EditResponse() {
   }, [formId, responseId]);
 
   const fetchRelatedResponses = async (fields: FormField[], currentData: Record<string, any>) => {
+    console.log(currentData);
+    
     const relationFields = fields.filter(
       (f) => f.type === "relation" && f.relationConfig?.formId
     );

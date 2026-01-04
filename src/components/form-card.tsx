@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Form } from "@/types/form";
-import type { FieldType } from "./form-generator";
+import type { FieldType } from "@/types/form";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {

@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus, X, Link, AlertCircle, Info, Loader2 } from "lucide-react";
-import type { FormField, FieldType } from "./types";
+import type { FormField, FieldType } from "@/types/form";
 import { supabaseService } from "@/services/supabase.service";
 
 interface FieldItemProps {
@@ -52,7 +52,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
   const fetchForms = async () => {
     setLoadingForms(true);
     try {
-      const fetchedForms = await graphqlService.getForms();
+      const fetchedForms = await supabaseService.getForms();
       setForms(fetchedForms);
     } catch (error) {
       console.error("Error fetching forms:", error);
@@ -64,7 +64,7 @@ export default function FieldItem({ field, onUpdate, onRemove }: FieldItemProps)
   const fetchRelatedFormFields = async (formId: string) => {
     setLoadingRelatedFields(true);
     try {
-      const form = await graphqlService.getFormById(formId);
+      const form = await supabaseService.getFormById(formId);
       if (form && form.schema) {
         let schema;
         try {

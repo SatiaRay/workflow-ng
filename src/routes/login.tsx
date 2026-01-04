@@ -13,7 +13,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 // Initialize Supabase client
@@ -27,13 +26,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState(null);
 
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
       
       // If user is already logged in, redirect to home
       if (session) {
@@ -45,7 +42,6 @@ export default function LoginPage() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
       if (session) {
         navigate("/");
       }

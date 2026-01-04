@@ -21,7 +21,7 @@ import FieldItem from "./field-item";
 import { Plus, Copy, Download, Save, RefreshCw, Link } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
-import type { FormSchema, FormField } from "./types";
+import type { FormSchema, FormField } from "@/types/form";
 
 // Export types for external use
 export type { FormSchema, FormField };

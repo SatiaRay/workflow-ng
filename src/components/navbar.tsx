@@ -4,6 +4,7 @@ import { useTheme } from "./theme-provider";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -14,17 +15,14 @@ const supabase = createClient(
 export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
   const location = useLocation();
 
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
-      setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      setLoading(false);
     };
 
     checkSession();

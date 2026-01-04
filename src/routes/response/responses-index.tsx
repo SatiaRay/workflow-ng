@@ -48,6 +48,7 @@ import {
 import { toast } from "sonner";
 import {
   supabaseService,
+  type FormResponse,
   type Filter as SupabaseFilter,
 } from "@/services/supabase.service";
 import DeleteResponseConfirmation from "@/components/delete-response-confirmation";
@@ -64,14 +65,6 @@ interface FormField {
     formTitle?: string;
     displayField?: string;
   };
-}
-
-interface FormResponse {
-  id: string;
-  form_id: string;
-  data: Record<string, any>;
-  created_at: string;
-  updated_at?: string;
 }
 
 interface RelatedFormData {

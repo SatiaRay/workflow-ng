@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ArrowLeft,
   Calendar,
@@ -90,7 +89,6 @@ export default function ShowResponse() {
   
   // Relation field data
   const [relatedFormData, setRelatedFormData] = useState<RelatedFormData>({});
-  const [loadingRelations, setLoadingRelations] = useState(false);
 
   // Update field values when fields or responseData changes
   useEffect(() => {
@@ -278,11 +276,11 @@ export default function ShowResponse() {
 
   // Fetch related form data for relation fields
   const fetchRelatedFormData = async (fields: FormField[], currentData: Record<string, any>) => {
+    console.log(currentData);
+    
     const relationFields = fields.filter(f => f.type === 'relation' && f.relationConfig?.formId);
     
     if (relationFields.length === 0) return;
-    
-    setLoadingRelations(true);
     
     try {
       const newRelatedFormData: RelatedFormData = {};
@@ -352,7 +350,6 @@ export default function ShowResponse() {
     } catch (error) {
       console.error("Error fetching related form data:", error);
     } finally {
-      setLoadingRelations(false);
     }
   };
 

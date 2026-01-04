@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,13 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type Session } from "@supabase/supabase-js";
 import {
   LogIn,
   FileText,
   LayoutDashboard,
   ArrowRight,
-  Home,
 } from "lucide-react";
 
 // Initialize Supabase client
@@ -24,8 +23,7 @@ const supabase = createClient(
 );
 
 export default function HomePage() {
-  const navigate = useNavigate();
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check for existing session on mount
