@@ -28,7 +28,7 @@ const services = [
   },
   {
     title: "پشتیبانی و آموزش",
-    description: "پشتیبانی فنی تخصصی و ارائه آموزش‌های کاربردی برای استفاده بهینه از پلتفرم ساتیا فرم.",
+    description: "پشتیبانی فنی تخصصی و ارائه آموزش‌های کاربردی برای استفاده بهینه از پلتفرم گردش کار ساتیا.",
     icon: "🎓"
   }
 ];
@@ -39,7 +39,7 @@ export default function ServicesPage() {
       <div className="max-w-6xl mx-auto">
         <div className="space-y-8">
           <div className="space-y-4 text-center">
-            <h1 className="text-4xl font-bold tracking-tight">خدمات ساتیا فرم</h1>
+            <h1 className="text-4xl font-bold tracking-tight">خدمات گردش کار ساتیا</h1>
             <p className="text-lg text-muted-foreground">
               طیف کامل خدمات ما برای ایجاد سیستم‌های فرم‌بندی هوشمند و پویا
             </p>

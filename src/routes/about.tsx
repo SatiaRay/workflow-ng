@@ -6,7 +6,7 @@ export default function AboutPage() {
       <div className="max-w-4xl mx-auto">
         <div className="space-y-8">
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight">درباره ساتیا فرم</h1>
+            <h1 className="text-4xl font-bold tracking-tight">درباره گردش کار ساتیا</h1>
             <p className="text-lg text-muted-foreground">
               با پلتفرم پیشرفته ساخت فرم‌های پویا و هوشمند بیشتر آشنا شوید.
             </p>
@@ -48,7 +48,7 @@ export default function AboutPage() {
           </div>
 
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">کاربردهای ساتیا فرم</h2>
+            <h2 className="text-2xl font-semibold">کاربردهای گردش کار ساتیا</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-card border rounded-lg p-4">
                 <h3 className="font-semibold mb-2">📋 سیستم‌های نظرسنجی</h3>

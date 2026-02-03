@@ -63,7 +63,7 @@ export default function HomePage() {
         <div className="max-w-2xl mx-auto space-y-8">
           <div className="space-y-4">
             <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-              به <span className="text-primary">ساتیا فرم</span> خوش آمدید
+              به <span className="text-primary">گردش کار ساتیا</span> خوش آمدید
             </h1>
           </div>
           <div className="text-center">
@@ -82,7 +82,7 @@ export default function HomePage() {
           <>
             <div className="space-y-4">
               <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-                پلتفرم  <span className="text-primary">ساتیا فرم</span>
+                پلتفرم  <span className="text-primary">گردش کار ساتیا</span>
               </h1>
 
               <p className="text-xl text-muted-foreground">
@@ -122,7 +122,7 @@ export default function HomePage() {
               </div>
               
               <p className="text-lg leading-relaxed pt-4">
-                ساتیا فرم یک پلتفرم کامل برای طراحی، ساخت و مدیریت فرم‌های پویا است. 
+                گردش کار ساتیا یک پلتفرم کامل برای طراحی، ساخت و مدیریت فرم‌های پویا است. 
                 امکان ایجاد ارتباط بین فرم‌های مختلف را فراهم کرده و به شما اجازه می‌دهد 
                 سیستم‌های فرم‌بندی پیچیده و هوشمندی ایجاد کنید.
               </p>
@@ -141,7 +141,7 @@ export default function HomePage() {
                 href="/about"
                 className="px-6 py-3 border border-gray-700 rounded-lg font-medium hover:bg-accent transition-colors"
               >
-                درباره ساتیا فرم
+                درباره گردش کار ساتیا
               </a>
 
               <a
@@ -220,7 +220,7 @@ export default function HomePage() {
           <p className="text-sm text-muted-foreground">
             {session
               ? "از پنل مدیریت فرم‌های پویا استفاده کنید. قابلیت ارتباط بین فرم‌ها را امتحان کنید."
-              : "ساتیا فرم - پلتفرم پیشرفته ساخت فرم‌های پویا با قابلیت ارتباط بین فرم‌های مختلف"}
+              : "گردش کار ساتیا - پلتفرم پیشرفته ساخت فرم‌های پویا با قابلیت ارتباط بین فرم‌های مختلف"}
           </p>
         </div>
       </div>

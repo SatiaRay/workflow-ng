@@ -91,7 +91,7 @@ export default function LoginPage() {
               <div className="flex size-8 items-center justify-center rounded-md">
                 <GalleryVerticalEnd className="size-6" />
               </div>
-              <h1 className="text-xl font-bold">به ساتیا فرم خوش آمدید</h1>
+              <h1 className="text-xl font-bold">به گردش کار ساتیا خوش آمدید</h1>
               <FieldDescription>
                 برای ورود اطلاعات حساب کاربری خود را وارد کنید
               </FieldDescription>

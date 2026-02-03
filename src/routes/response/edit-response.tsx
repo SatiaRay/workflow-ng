@@ -869,7 +869,7 @@ export default function EditResponse() {
             {/* Form Info Footer */}
             <div className="mt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                این فرم توسط ساتیا فرم پشتیبانی می‌شود • به‌روزرسانی‌های پاسخ شما امن و خصوصی هستند
+                این فرم توسط گردش کار ساتیا پشتیبانی می‌شود • به‌روزرسانی‌های پاسخ شما امن و خصوصی هستند
               </p>
             </div>
           </>

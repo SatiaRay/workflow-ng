@@ -55,7 +55,7 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <div className="text-xl font-bold text-primary">ساتیا فرم</div>
+            <div className="text-xl font-bold text-primary">گردش کار ساتیا</div>
           </Link>
 
           {/* Desktop Navigation - Only show when logged in */}
