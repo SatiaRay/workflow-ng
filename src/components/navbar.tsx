@@ -4,6 +4,7 @@ import { useTheme } from "./theme-provider";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 
+
 export interface NavbarProps {
   items?: NavbarItem[];
 }
@@ -17,6 +18,9 @@ export default function Navbar({ items }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const location = useLocation();
+
+  console.log(location.pathname);
+  
 
   const isPathnameActive = (path: string) => {
     return location.pathname === path;
