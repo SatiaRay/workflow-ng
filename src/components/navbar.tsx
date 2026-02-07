@@ -19,9 +19,6 @@ export default function Navbar({ items }: NavbarProps) {
 
   const location = useLocation();
 
-  console.log(location.pathname);
-  
-
   const isPathnameActive = (path: string) => {
     return location.pathname === path;
   };
@@ -159,7 +156,7 @@ const MobileMenuButtons = ({
           <Link
             key={item.label}
             to={item.path}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors mobile-nav-button ${
               isPathnameActive(item.path)
                 ? "text-primary bg-accent"
                 : "text-muted-foreground hover:text-primary hover:bg-accent"
