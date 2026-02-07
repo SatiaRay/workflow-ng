@@ -1,9 +1,7 @@
-// vitest.setup.ts
-import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach } from 'vitest';
+import '@testing-library/jest-dom';
 
-// Mock import.meta.env for Vite
 if (typeof import.meta === 'undefined') {
   globalThis.import = {
     meta: {
