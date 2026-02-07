@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { createClient, type Session } from "@supabase/supabase-js";
 import {
   LogIn,
   FileText,
@@ -16,69 +15,23 @@ import {
   ArrowRight,
   Link as LinkIcon,
 } from "lucide-react";
-
-// Initialize Supabase client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { useAuth } from "@/context/auth-context";
 
 export default function HomePage() {
   const navigate = useNavigate();
 
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Check for existing session on mount
-  useEffect(() => {
-    const checkSession = async () => {
-      setLoading(true);
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-      setLoading(false);
-    };
-
-    checkSession();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const {logout, user, isAuthenticated} = useAuth()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.reload(); // Simple reload to update state
+    await logout();
+    window.location.reload();
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center text-center">
-        <div className="max-w-2xl mx-auto space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-              به <span className="text-primary">گردش کار ساتیا</span> خوش آمدید
-            </h1>
-          </div>
-          <div className="text-center">
-            <p className="text-muted-foreground">در حال بارگذاری...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center text-center">
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Show ONLY when NOT logged in */}
-        {!session && (
+        {!isAuthenticated() && (
           <>
             <div className="space-y-4">
               <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
@@ -155,7 +108,7 @@ export default function HomePage() {
         )}
 
         {/* Show Welcome Back card when user IS logged in */}
-        {session && (
+        {isAuthenticated() && (
           <Card className="max-w-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 justify-center text-3xl">
@@ -164,7 +117,7 @@ export default function HomePage() {
               </CardTitle>
               <CardDescription className="text-lg">
                 شما با این حساب وارد شده‌اید:{" "}
-                <span className="font-semibold">{session.user.email}</span>
+                <span className="font-semibold">{user?.email}</span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -218,7 +171,7 @@ export default function HomePage() {
 
         <div className="pt-12 border-t border-gray-800">
           <p className="text-sm text-muted-foreground">
-            {session
+            {isAuthenticated()
               ? "از پنل مدیریت فرم‌های پویا استفاده کنید. قابلیت ارتباط بین فرم‌ها را امتحان کنید."
               : "گردش کار ساتیا - پلتفرم پیشرفته ساخت فرم‌های پویا با قابلیت ارتباط بین فرم‌های مختلف"}
           </p>

@@ -1,7 +1,6 @@
 // LoginPage.tsx
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { createClient } from "@supabase/supabase-js";
 import { GalleryVerticalEnd, Mail, Lock, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -14,12 +13,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
-// Initialize Supabase client
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { useAuth } from "@/context/auth-context";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -27,60 +21,38 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const {isAuthenticated, login, session}  = useAuth()
 
-  // Check for existing session on mount
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // If user is already logged in, redirect to intended page or home
-      if (session) {
-        const redirectUrl = searchParams.get("redirect") || "/";
-        navigate(redirectUrl, { replace: true });
-      }
-    };
-
-    checkSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        const redirectUrl = searchParams.get("redirect") || "/";
-        navigate(redirectUrl, { replace: true });
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, searchParams]);
+      if(isAuthenticated())
+        navigate('/', { replace: true });
+  }, [navigate, searchParams, session]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    if (!email || !password) {
-      toast.error("لطفاً تمام فیلدها را پر کنید");
-      setLoading(false);
-      return;
-    }
+    if(!validatedLoginFields())
+      return
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("با موفقیت وارد شدید!");
-        // Navigation will be handled by the auth state change listener
-      }
+      await login(email, password)
     } catch (error: any) {
       toast.error(error.message || "خطایی رخ داده است");
     } finally {
       setLoading(false);
     }
   };
+
+  const validatedLoginFields = () => {
+  if (!email || !password) {
+      toast.error("لطفاً تمام فیلدها را پر کنید");
+      setLoading(false);
+      return false;
+    }
+
+    return true
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">

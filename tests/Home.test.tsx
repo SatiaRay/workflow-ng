@@ -1,17 +1,20 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import HomePage from '../src/routes/home';
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
+import HomePage from "../src/routes/home";
+import { AuthProvider } from "@/context/auth-context";
 
-describe('HomePage tests', () => {
-  it('should render app title', () => {
+describe("HomePage tests", () => {
+  it("should render app title", () => {
     render(
       <BrowserRouter>
-        <HomePage />
-      </BrowserRouter>
+        <AuthProvider>
+          <HomePage />
+        </AuthProvider>
+      </BrowserRouter>,
     );
-    
-    const appTitle = screen.getByText('گردش کار ساتیا');
+
+    const appTitle = screen.getByText("گردش کار ساتیا");
     expect(appTitle).toBeInTheDocument();
   });
 });
