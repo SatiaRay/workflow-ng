@@ -380,7 +380,7 @@ export default function ShowResponse() {
   };
 
   const handleEdit = () => {
-    navigate(`/form/${formId}/responses/edit/${responseId}`);
+    navigate(`/responses/${formId}/edit/${responseId}`);
   };
 
   // Handle delete button click
@@ -414,7 +414,7 @@ export default function ShowResponse() {
     try {
       await supabaseService.deleteResponse(responseToDelete.id);
       toast.success("پاسخ با موفقیت حذف شد");
-      navigate(`/form/${formId}/responses`);
+      navigate(`/responses/${formId}`);
     } catch (error: any) {
       console.error("Delete error:", error);
       toast.error(`حذف پاسخ ناموفق بود: ${error.message}`);
@@ -576,7 +576,7 @@ export default function ShowResponse() {
                 ? "این فرم وجود ندارد یا حذف شده است."
                 : "این پاسخ وجود ندارد یا حذف شده است."}
             </p>
-            <Button onClick={() => navigate(`/form/${formId}/responses`)} variant="outline">
+            <Button onClick={() => navigate(`/responses/${formId}`)} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               بازگشت به فهرست پاسخ ها
             </Button>
@@ -595,7 +595,7 @@ export default function ShowResponse() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/form/${formId}/responses`)}
+              onClick={() => navigate(`/responses/${formId}`)}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               بازگشت به پاسخ‌ها
@@ -797,7 +797,7 @@ export default function ShowResponse() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(`/form/${formId}/responses`)}
+              onClick={() => navigate(`/responses/${formId}`)}
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               تمام پاسخ‌ها

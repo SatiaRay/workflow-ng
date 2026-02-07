@@ -15,8 +15,8 @@ import ShowResponse from "./routes/response/show-response";
 import LoginPage from "./routes/login";
 import ProtectedRoute from "./components/protected-route";
 
-export const router = createBrowserRouter([
-  {
+const brandingRoutes = () => {
+  return {
     path: "/",
     element: <Layout />,
     children: [
@@ -37,8 +37,11 @@ export const router = createBrowserRouter([
         element: <NotFoundPage />,
       },
     ],
-  },
-  {
+  };
+};
+
+const authRoutes = () => {
+  return {
     path: "/auth",
     element: <Layout />,
     children: [
@@ -47,8 +50,11 @@ export const router = createBrowserRouter([
         element: <LoginPage />,
       },
     ],
-  },
-  {
+  };
+};
+
+const formRoutes = () => {
+  return {
     path: "/form",
     element: <Layout />,
     children: [
@@ -85,8 +91,17 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+    ],
+  };
+};
+
+const formResponseRoutes = () => {
+  return {
+    path: "/responses",
+    element: <Layout />,
+    children: [
       {
-        path: ":formId/responses",
+        path: ":formId",
         element: (
           <ProtectedRoute>
             <ResponsesIndex />
@@ -94,7 +109,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: ":formId/responses/show/:responseId",
+        path: ":formId/show/:responseId",
         element: (
           <ProtectedRoute>
             <ShowResponse />
@@ -102,7 +117,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: ":formId/responses/edit/:responseId",
+        path: ":formId/edit/:responseId",
         element: (
           <ProtectedRoute>
             <EditResponse />
@@ -110,5 +125,12 @@ export const router = createBrowserRouter([
         ),
       },
     ],
-  },
+  };
+};
+
+export const router = createBrowserRouter([
+  brandingRoutes(),
+  authRoutes(),
+  formRoutes(),
+  formResponseRoutes()
 ]);

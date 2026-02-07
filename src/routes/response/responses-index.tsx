@@ -678,7 +678,7 @@ export default function ResponsesIndex() {
             variant="ghost"
             size="icon"
             onClick={() => {
-              navigate(`/form/${formId}/responses/show/${response.id}`);
+              navigate(`/responses/${formId}/show/${response.id}`);
             }}
             title="مشاهده جزئیات پاسخ"
             className="h-8 w-8"
@@ -690,7 +690,7 @@ export default function ResponsesIndex() {
             variant="ghost"
             size="icon"
             onClick={() => {
-              navigate(`/form/${formId}/responses/edit/${response.id}`);
+              navigate(`/responses/${formId}/edit/${response.id}`);
             }}
             title="ویرایش پاسخ"
             className="h-8 w-8"

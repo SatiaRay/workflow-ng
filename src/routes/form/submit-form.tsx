@@ -692,7 +692,7 @@ export default function SubmitForm() {
                 </Button>
 
                 <Button
-                  onClick={() => navigate(`/form/${id}/responses`)}
+                  onClick={() => navigate(`/responses/${id}`)}
                   variant="outline"
                   size="lg"
                 >

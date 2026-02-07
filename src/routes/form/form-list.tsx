@@ -259,7 +259,7 @@ export default function FormList() {
                   <CardFooter className="border-t pt-4 mt-auto">
                     <div className="flex justify-between w-full">
                       <div className="flex gap-1">
-                        <Link to={`/form/${form.id}/responses`}>
+                        <Link to={`/responses/${form.id}`}>
                           <Button className="cursor-pointer" size="sm">
                             <Database className="w-4 h-4 mr-1" />
                             <span className="md:hidden xl:inline">

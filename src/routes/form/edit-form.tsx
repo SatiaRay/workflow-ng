@@ -399,7 +399,7 @@ export default function EditForm() {
             <p className="text-muted-foreground mb-4">
               فرمی که می‌خواهید ویرایش کنید وجود ندارد یا حذف شده است.
             </p>
-            <Button onClick={() => navigate(`/form/${formId}/responses`)} variant="outline">
+            <Button onClick={() => navigate(`/responses/${formId}`)} variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
               بازگشت به فهرست پاسخ ها
             </Button>
