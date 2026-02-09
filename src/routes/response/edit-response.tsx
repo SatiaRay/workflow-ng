@@ -664,7 +664,7 @@ export default function EditResponse() {
                 : "این پاسخ وجود ندارد یا حذف شده است."}
             </p>
             <Button 
-              onClick={() => navigate(`/form/${formId}/responses`)} 
+              onClick={() => navigate(`/responses/${formId}`)} 
               variant="outline"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -704,7 +704,7 @@ export default function EditResponse() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button
-                  onClick={() => navigate(`/form/${formId}/responses`)}
+                  onClick={() => navigate(`/responses/${formId}`)}
                   size="lg"
                   className="bg-green-600 hover:bg-green-700"
                 >
@@ -736,7 +736,7 @@ export default function EditResponse() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate(`/form/${formId}/responses`)}
+                onClick={() => navigate(`/responses/${formId}`)}
                 className="mb-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -856,7 +856,7 @@ export default function EditResponse() {
                     این فرم هیچ فیلدی برای ویرایش ندارد.
                   </p>
                   <Button 
-                    onClick={() => navigate(`/form/${formId}/responses`)} 
+                    onClick={() => navigate(`/responses/${formId}`)} 
                     variant="outline"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />

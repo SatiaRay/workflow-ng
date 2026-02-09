@@ -13,12 +13,15 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, phone?: string, role_id?: number) => Promise<any>;
   logout: () => Promise<void>;
   isAuthenticated: () => boolean;
   getProfile: () => Promise<any | null>;
 };
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -55,6 +58,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
       throw error;
     }
+  };
+
+  const signUp = async (email: string, password: string, name: string, phone: string, role_id?: number) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          phone: phone,
+          name: name,
+          role_id: role_id
+        },
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data
   };
 
   // Logout
@@ -94,6 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         loading,
         login,
+        signUp,
         logout,
         isAuthenticated,
         getProfile,

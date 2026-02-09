@@ -14,9 +14,12 @@ import EditResponse from "./routes/response/edit-response";
 import ShowResponse from "./routes/response/show-response";
 import LoginPage from "./routes/login";
 import ProtectedRoute from "./components/protected-route";
+import UsersIndex from "./routes/user";
+import CreateUser from "./routes/user/create-user";
+import RolesIndex from "./routes/role";
 
-export const router = createBrowserRouter([
-  {
+const brandingRoutes = () => {
+  return {
     path: "/",
     element: <Layout />,
     children: [
@@ -37,8 +40,11 @@ export const router = createBrowserRouter([
         element: <NotFoundPage />,
       },
     ],
-  },
-  {
+  };
+};
+
+const authRoutes = () => {
+  return {
     path: "/auth",
     element: <Layout />,
     children: [
@@ -47,8 +53,11 @@ export const router = createBrowserRouter([
         element: <LoginPage />,
       },
     ],
-  },
-  {
+  };
+};
+
+const formRoutes = () => {
+  return {
     path: "/form",
     element: <Layout />,
     children: [
@@ -85,8 +94,17 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+    ],
+  };
+};
+
+const formResponseRoutes = () => {
+  return {
+    path: "/responses",
+    element: <Layout />,
+    children: [
       {
-        path: ":formId/responses",
+        path: ":formId",
         element: (
           <ProtectedRoute>
             <ResponsesIndex />
@@ -94,7 +112,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: ":formId/responses/show/:responseId",
+        path: ":formId/show/:responseId",
         element: (
           <ProtectedRoute>
             <ShowResponse />
@@ -102,7 +120,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: ":formId/responses/edit/:responseId",
+        path: ":formId/edit/:responseId",
         element: (
           <ProtectedRoute>
             <EditResponse />
@@ -110,5 +128,44 @@ export const router = createBrowserRouter([
         ),
       },
     ],
-  },
+  };
+};
+
+const userRoutes = () => {
+  return {
+    path: "/users",
+    element: <Layout />,
+    children: [
+      {
+        path: "",
+        element: <UsersIndex />,
+      },
+      {
+        path: "create",
+        element: <CreateUser />,
+      },
+    ],
+  };
+};
+
+const roleRoutes = () => {
+    return {
+    path: "/roles",
+    element: <Layout />,
+    children: [
+      {
+        path: "",
+        element: <RolesIndex />,
+      },
+    ],
+  };
+}
+
+export const router = createBrowserRouter([
+  brandingRoutes(),
+  authRoutes(),
+  formRoutes(),
+  formResponseRoutes(),
+  userRoutes(),
+  roleRoutes()
 ]);
