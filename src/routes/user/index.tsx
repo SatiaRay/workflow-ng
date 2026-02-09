@@ -8,8 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,32 +26,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Search,
   Filter,
-  Eye,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Trash2,
-  X,
-  Pencil,
   UserPlus,
   Mail,
   Phone,
   User,
-  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface User {
@@ -70,45 +54,17 @@ interface User {
   updated_at?: string;
 }
 
-interface FilterState {
-  search: string;
-  role: string;
-  status: string;
-}
-
-const roleOptions = [
-  { value: "all", label: "همه نقش‌ها" },
-  { value: "admin", label: "مدیر سیستم" },
-  { value: "user", label: "کاربر عادی" },
-  { value: "editor", label: "ویرایشگر" },
-  { value: "viewer", label: "بیننده" },
-];
-
-const statusOptions = [
-  { value: "all", label: "همه وضعیت‌ها" },
-  { value: "active", label: "فعال" },
-  { value: "inactive", label: "غیرفعال" },
-  { value: "unconfirmed", label: "تایید نشده" },
-];
-
 export default function UsersIndex() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
-  const [filters, setFilters] = useState<FilterState>({
-    search: "",
-    role: "all",
-    status: "all",
-  });
-  const [showFilters, setShowFilters] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const pageSizes = [10, 25, 50, 100];
 
-  // Fetch users with filters
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
@@ -124,38 +80,12 @@ export default function UsersIndex() {
     } finally {
       setLoading(false);
     }
-  }, [filters, currentPage, pageSize]);
+  }, [currentPage, pageSize]);
 
-  // Initial fetch and fetch when filters/pagination change
+  // Initial fetch and fetch when pagination change
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
-
-  const handleFilterChange = (key: keyof FilterState, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setCurrentPage(1);
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      search: "",
-      role: "all",
-      status: "all",
-    });
-    setCurrentPage(1);
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("fa-IR", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
 
   const getInitials = (name?: string) => {
     if (!name) return "??";
@@ -165,19 +95,6 @@ export default function UsersIndex() {
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
-
-  const getRoleBadgeVariant = (role?: string) => {
-    switch (role) {
-      case "admin":
-        return { variant: "destructive" as const, label: "مدیر" };
-      case "editor":
-        return { variant: "default" as const, label: "ویرایشگر" };
-      case "viewer":
-        return { variant: "outline" as const, label: "بیننده" };
-      default:
-        return { variant: "secondary" as const, label: "کاربر" };
-    }
   };
 
   if (loading && !users.length) {
@@ -223,14 +140,10 @@ export default function UsersIndex() {
                 <User className="w-3 h-3" />
                 {totalCount} کاربر در مجموع
               </Badge>
-              {(filters.search ||
-                filters.role !== "all" ||
-                filters.status !== "all") && (
-                <Badge variant="secondary" className="gap-1">
-                  <Filter className="w-3 h-3" />
-                  {users.length} نمایش
-                </Badge>
-              )}
+              <Badge variant="secondary" className="gap-1">
+                <Filter className="w-3 h-3" />
+                {users.length} نمایش
+              </Badge>
             </div>
           </div>
 
@@ -242,99 +155,6 @@ export default function UsersIndex() {
             ایجاد کاربر جدید
           </Button>
         </div>
-
-        {/* Search and Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="جستجو بر اساس نام، ایمیل یا شماره تماس..."
-                    value={filters.search}
-                    onChange={(e) =>
-                      handleFilterChange("search", e.target.value)
-                    }
-                    className="pr-9"
-                    dir="rtl"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={showFilters ? "default" : "outline"}
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="whitespace-nowrap"
-                  >
-                    <Filter className="w-4 h-4 ml-2" />
-                    {showFilters ? "پنهان کردن فیلترها" : "نمایش فیلترها"}
-                  </Button>
-                  {(filters.search ||
-                    filters.role !== "all" ||
-                    filters.status !== "all") && (
-                    <Button variant="ghost" onClick={clearFilters} size="icon">
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Dynamic Filters Panel */}
-              {showFilters && (
-                <div className="pt-4 border-t">
-                  <h3 className="font-medium mb-4">فیلتر پیشرفته</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="role-filter" className="text-sm">
-                        نقش
-                      </Label>
-                      <Select
-                        value={filters.role}
-                        onValueChange={(value) =>
-                          handleFilterChange("role", value)
-                        }
-                      >
-                        <SelectTrigger id="role-filter" className="w-full">
-                          <SelectValue placeholder="همه نقش‌ها" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roleOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="status-filter" className="text-sm">
-                        وضعیت
-                      </Label>
-                      <Select
-                        value={filters.status}
-                        onValueChange={(value) =>
-                          handleFilterChange("status", value)
-                        }
-                      >
-                        <SelectTrigger id="status-filter" className="w-full">
-                          <SelectValue placeholder="همه وضعیت‌ها" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Users Table */}
         <Card>
@@ -438,14 +258,6 @@ export default function UsersIndex() {
                     ? "در حال بارگذاری کاربران..."
                     : "هیچ کاربری مطابق با فیلترهای فعلی یافت نشد."}
                 </p>
-                {!loading &&
-                  (filters.search ||
-                    filters.role !== "all" ||
-                    filters.status !== "all") && (
-                    <Button variant="outline" onClick={clearFilters}>
-                      پاک کردن فیلترها
-                    </Button>
-                  )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -491,7 +303,6 @@ export default function UsersIndex() {
                               )}
                             </div>
                           </TableCell>
-
                         </TableRow>
                       );
                     })}
