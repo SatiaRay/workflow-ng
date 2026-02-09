@@ -66,7 +66,7 @@ interface User {
   id: string;
   email: string;
   phone?: string;
-  full_name?: string;
+  name?: string;
   avatar_url?: string;
   role?: string;
   is_active: boolean;
@@ -128,10 +128,7 @@ export default function UsersIndex() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await supabaseService.getProfiles(
-        currentPage,
-        pageSize
-      );
+      const result = await supabaseService.getProfiles(currentPage, pageSize);
 
       setUsers(result.data);
       setTotalCount(result.total);
@@ -221,33 +218,6 @@ export default function UsersIndex() {
     }
   };
 
-  const getStatusBadge = (user: User) => {
-    if (!user.is_active) {
-      return (
-        <Badge variant="outline" className="bg-gray-50 text-gray-600">
-          <XCircle className="w-3 h-3 ml-1" />
-          غیرفعال
-        </Badge>
-      );
-    }
-
-    if (!user.email_confirmed_at) {
-      return (
-        <Badge variant="outline" className="bg-yellow-50 text-yellow-700">
-          <Mail className="w-3 h-3 ml-1" />
-          تایید نشده
-        </Badge>
-      );
-    }
-
-    return (
-      <Badge variant="outline" className="bg-green-50 text-green-700">
-        <CheckCircle className="w-3 h-3 ml-1" />
-        فعال
-      </Badge>
-    );
-  };
-
   if (loading && !users.length) {
     return (
       <div className="container mx-auto p-6">
@@ -291,7 +261,9 @@ export default function UsersIndex() {
                 <User className="w-3 h-3" />
                 {totalCount} کاربر در مجموع
               </Badge>
-              {(filters.search || filters.role !== "all" || filters.status !== "all") && (
+              {(filters.search ||
+                filters.role !== "all" ||
+                filters.status !== "all") && (
                 <Badge variant="secondary" className="gap-1">
                   <Filter className="w-3 h-3" />
                   {users.length} نمایش
@@ -319,7 +291,9 @@ export default function UsersIndex() {
                   <Input
                     placeholder="جستجو بر اساس نام، ایمیل یا شماره تماس..."
                     value={filters.search}
-                    onChange={(e) => handleFilterChange("search", e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("search", e.target.value)
+                    }
                     className="pr-9"
                     dir="rtl"
                   />
@@ -333,7 +307,9 @@ export default function UsersIndex() {
                     <Filter className="w-4 h-4 ml-2" />
                     {showFilters ? "پنهان کردن فیلترها" : "نمایش فیلترها"}
                   </Button>
-                  {(filters.search || filters.role !== "all" || filters.status !== "all") && (
+                  {(filters.search ||
+                    filters.role !== "all" ||
+                    filters.status !== "all") && (
                     <Button variant="ghost" onClick={clearFilters} size="icon">
                       <X className="w-4 h-4" />
                     </Button>
@@ -352,7 +328,9 @@ export default function UsersIndex() {
                       </Label>
                       <Select
                         value={filters.role}
-                        onValueChange={(value) => handleFilterChange("role", value)}
+                        onValueChange={(value) =>
+                          handleFilterChange("role", value)
+                        }
                       >
                         <SelectTrigger id="role-filter" className="w-full">
                           <SelectValue placeholder="همه نقش‌ها" />
@@ -373,7 +351,9 @@ export default function UsersIndex() {
                       </Label>
                       <Select
                         value={filters.status}
-                        onValueChange={(value) => handleFilterChange("status", value)}
+                        onValueChange={(value) =>
+                          handleFilterChange("status", value)
+                        }
                       >
                         <SelectTrigger id="status-filter" className="w-full">
                           <SelectValue placeholder="همه وضعیت‌ها" />
@@ -463,7 +443,7 @@ export default function UsersIndex() {
                       size="icon"
                       onClick={() =>
                         setCurrentPage((prev) =>
-                          Math.min(Math.ceil(totalCount / pageSize), prev + 1)
+                          Math.min(Math.ceil(totalCount / pageSize), prev + 1),
                         )
                       }
                       disabled={currentPage >= Math.ceil(totalCount / pageSize)}
@@ -496,25 +476,24 @@ export default function UsersIndex() {
                     ? "در حال بارگذاری کاربران..."
                     : "هیچ کاربری مطابق با فیلترهای فعلی یافت نشد."}
                 </p>
-                {!loading && (filters.search || filters.role !== "all" || filters.status !== "all") && (
-                  <Button variant="outline" onClick={clearFilters}>
-                    پاک کردن فیلترها
-                  </Button>
-                )}
+                {!loading &&
+                  (filters.search ||
+                    filters.role !== "all" ||
+                    filters.status !== "all") && (
+                    <Button variant="outline" onClick={clearFilters}>
+                      پاک کردن فیلترها
+                    </Button>
+                  )}
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table dir="rtl">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>کاربر</TableHead>
-                      <TableHead>اطلاعات تماس</TableHead>
-                      <TableHead>نقش</TableHead>
-                      <TableHead>وضعیت</TableHead>
-                      <TableHead>تاریخ عضویت</TableHead>
-                      <TableHead>آخرین ورود</TableHead>
-                      <TableHead className="w-20">عملیات</TableHead>
+                      <TableHead className="w-12 text-center"></TableHead>
+                      <TableHead className="text-right">کاربر</TableHead>
+                      <TableHead className="text-right">اطلاعات تماس</TableHead>
+                      <TableHead className="w-14 text-center">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -528,13 +507,13 @@ export default function UsersIndex() {
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={user.avatar_url} />
                               <AvatarFallback>
-                                {getInitials(user.full_name || user.email)}
+                                {getInitials(user.name || user.email)}
                               </AvatarFallback>
                             </Avatar>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
-                              {user.full_name || "نامشخص"}
+                              {user.name || "نامشخص"}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               ID: {user.id.substring(0, 8)}...
@@ -554,26 +533,7 @@ export default function UsersIndex() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant={roleBadge.variant}>
-                              <Shield className="w-3 h-3 ml-1" />
-                              {roleBadge.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(user)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1 text-sm">
-                              <Calendar className="w-3 h-3 text-muted-foreground" />
-                              {formatDate(user.created_at)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {formatDate(user.last_sign_in_at)}
-                            </div>
-                          </TableCell>
+
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -584,33 +544,22 @@ export default function UsersIndex() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>عملیات</DropdownMenuLabel>
                                 <DropdownMenuItem
-                                  onClick={() => navigate(`/users/show/${user.id}`)}
+                                  onClick={() =>
+                                    navigate(`/users/show/${user.id}`)
+                                  }
                                 >
                                   <Eye className="w-4 h-4 ml-2" />
                                   مشاهده جزئیات
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => navigate(`/users/edit/${user.id}`)}
+                                  onClick={() =>
+                                    navigate(`/users/edit/${user.id}`)
+                                  }
                                 >
                                   <Pencil className="w-4 h-4 ml-2" />
                                   ویرایش
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleToggleStatus(user)}
-                                >
-                                  {user.is_active ? (
-                                    <>
-                                      <XCircle className="w-4 h-4 ml-2" />
-                                      غیرفعال کردن
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CheckCircle className="w-4 h-4 ml-2" />
-                                      فعال کردن
-                                    </>
-                                  )}
-                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => setUserToDelete(user)}
                                   className="text-red-600"
