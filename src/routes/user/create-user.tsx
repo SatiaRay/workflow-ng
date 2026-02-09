@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   ArrowLeft,
@@ -31,9 +30,14 @@ import {
   EyeOff,
   AlertCircle,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
+import { RoleService } from "@/services/supabase/role-service";
+
+// Import the Role interface
+import type { Role } from "@/services/supabase/role-service";
 
 interface FormData {
   email: string;
@@ -41,7 +45,7 @@ interface FormData {
   confirmPassword: string;
   full_name: string;
   phone: string;
-  role: string;
+  role_id: number | null;
   sendInvitation: boolean;
 }
 
@@ -51,23 +55,23 @@ interface FormErrors {
   confirmPassword?: string;
   full_name?: string;
   phone?: string;
-  role?: string;
+  role_id?: string;
   general?: string;
 }
-
-const roleOptions = [
-  { value: "user", label: "کاربر عادی", description: "دسترسی پایه به سیستم" },
-  { value: "viewer", label: "بیننده", description: "فقط مشاهده اطلاعات" },
-  { value: "editor", label: "ویرایشگر", description: "ویرایش و مدیریت محتوا" },
-  { value: "admin", label: "مدیر سیستم", description: "دسترسی کامل به تمام بخش‌ها" },
-];
 
 export default function CreateUser() {
   const navigate = useNavigate();
   const { signUp } = useAuth();
+  
+  // Initialize RoleService
+  const roleService = new RoleService();
+  
+  // States
   const [loading, setLoading] = useState(false);
+  const [loadingRoles, setLoadingRoles] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
 
   const [formData, setFormData] = useState<FormData>({
     email: "",
@@ -75,11 +79,36 @@ export default function CreateUser() {
     confirmPassword: "",
     full_name: "",
     phone: "",
-    role: "user",
+    role_id: null,
     sendInvitation: true,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Fetch roles on component mount
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const rolesData = await roleService.getRoles();
+        setRoles(rolesData);
+        
+        // Set default role to the first one if exists
+        if (rolesData.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            role_id: rolesData[0].id
+          }));
+        }
+      } catch (error: any) {
+        console.error("Error fetching roles:", error);
+        toast.error("بارگذاری لیست نقش‌ها ناموفق بود");
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+
+    fetchRoles();
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -116,25 +145,25 @@ export default function CreateUser() {
     }
 
     // Role validation
-    if (!formData.role) {
-      newErrors.role = "انتخاب نقش کاربر الزامی است";
+    if (!formData.role_id) {
+      newErrors.role_id = "انتخاب نقش کاربر الزامی است";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
+  const handleInputChange = (field: keyof FormData, value: string | boolean | number | null) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
 
     // Clear error for this field
-    if (errors[field]) {
+    if (errors[field as keyof FormErrors]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
-        delete newErrors[field];
+        delete newErrors[field as keyof FormErrors];
         return newErrors;
       });
     }
@@ -176,44 +205,28 @@ export default function CreateUser() {
       return;
     }
 
+    if (!formData.role_id) {
+      toast.error("لطفاً یک نقش انتخاب کنید");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Create user in Auth
+      // Create user in Auth with role_id
       const authData = await signUp(
         formData.email,
         formData.password,
         formData.full_name,
-        formData.phone
+        formData.phone,
+        formData.role_id
       );
 
       if (!authData.user) {
         throw new Error("ایجاد کاربر در احراز هویت ناموفق بود");
       }
 
-      // Create user profile in database
-      const profileData = {
-        id: authData.user.id,
-        email: formData.email,
-        full_name: formData.full_name,
-        phone: formData.phone.trim() || null,
-        role: formData.role,
-        is_active: true,
-        email_confirmed_at: formData.sendInvitation ? null : new Date().toISOString(),
-      };
-
-      // TODO: You'll need to implement this function in your supabaseService
-      // to insert the user profile data into your profiles table
-      // Example:
-      // await supabaseService.createUserProfile(profileData);
-
-      // Prepare success message
-      let successMessage = "کاربر جدید با موفقیت ایجاد شد";
-      if (formData.sendInvitation) {
-        successMessage += " و لینک فعال‌سازی به ایمیل کاربر ارسال شد";
-      }
-
-      toast.success(successMessage);
+      toast.success("کاربر جدید با موفقیت ایجاد شد");
 
       // Navigate to users list
       navigate("/users", { state: { refresh: true } });
@@ -221,14 +234,16 @@ export default function CreateUser() {
     } catch (error: any) {
       console.error("Error creating user:", error);
 
-      // Handle specific Supabase errors
       let errorMessage = "ایجاد کاربر ناموفق بود";
-      if (error.message?.includes("already registered")) {
+      if (error.message?.includes("already registered") || error.message?.includes("User already registered")) {
         errorMessage = "این ایمیل قبلاً ثبت‌نام کرده است";
         setErrors({ email: "این ایمیل قبلاً در سیستم موجود است" });
-      } else if (error.message?.includes("password")) {
+      } else if (error.message?.includes("password") || error.message?.includes("Password")) {
         errorMessage = "رمز عبور معتبر نیست";
         setErrors({ password: "رمز عبور قوی‌تری انتخاب کنید" });
+      } else if (error.message?.includes("Invalid email")) {
+        errorMessage = "ایمیل وارد شده معتبر نیست";
+        setErrors({ email: "ایمیل معتبر نیست" });
       } else {
         errorMessage = error.message || errorMessage;
       }
@@ -366,37 +381,54 @@ export default function CreateUser() {
 
                   {/* Role */}
                   <div className="space-y-2">
-                    <Label htmlFor="role">
+                    <Label htmlFor="role_id">
                       نقش کاربر <span className="text-red-500">*</span>
                     </Label>
                     <Select
-                      value={formData.role}
-                      onValueChange={(value) => handleInputChange("role", value)}
-                      disabled={loading}
+                      value={formData.role_id?.toString() || ""}
+                      onValueChange={(value) => handleInputChange("role_id", value ? parseInt(value) : null)}
+                      disabled={loading || loadingRoles}
                     >
-                      <SelectTrigger id="role" className="w-full">
+                      <SelectTrigger id="role_id" className="w-full">
                         <div className="flex items-center gap-2">
                           <Shield className="w-4 h-4" />
-                          <SelectValue placeholder="انتخاب نقش کاربر" />
+                          {loadingRoles ? (
+                            <span className="text-muted-foreground">در حال بارگذاری نقش‌ها...</span>
+                          ) : roles.length === 0 ? (
+                            <span className="text-muted-foreground">هیچ نقشی موجود نیست</span>
+                          ) : (
+                            <SelectValue placeholder="انتخاب نقش کاربر" />
+                          )}
                         </div>
                       </SelectTrigger>
                       <SelectContent>
-                        {roleOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div className="flex flex-col">
-                              <span>{option.label}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {option.description}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {loadingRoles ? (
+                          <div className="flex items-center justify-center p-4">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span className="mr-2">در حال بارگذاری...</span>
+                          </div>
+                        ) : roles.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            هیچ نقشی ایجاد نشده است
+                          </div>
+                        ) : (
+                          roles.map((role) => (
+                            <SelectItem key={role.id} value={role.id.toString()}>
+                              <div className="flex flex-col">
+                                <span>{role.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ID: {role.id}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
-                    {errors.role && (
+                    {errors.role_id && (
                       <p className="text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
-                        {errors.role}
+                        {errors.role_id}
                       </p>
                     )}
                   </div>
@@ -501,38 +533,7 @@ export default function CreateUser() {
                     )}
                   </div>
                 </div>
-
-                <div className="rounded-lg bg-muted p-4 space-y-2">
-                  <p className="text-sm font-medium">راهنمای رمز عبور قوی:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>حداقل ۶ کاراکتر (ترجیحاً ۸ کاراکتر یا بیشتر)</li>
-                    <li>ترکیبی از حروف بزرگ و کوچک انگلیسی</li>
-                    <li>استفاده از اعداد</li>
-                    <li>استفاده از کاراکترهای خاص مانند !@#$%^&*</li>
-                  </ul>
-                </div>
               </div>
-
-              {/* Invitation Settings */}
-              {/* <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-start space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="sendInvitation"
-                    checked={formData.sendInvitation}
-                    onCheckedChange={(checked) => handleInputChange("sendInvitation", checked as boolean)}
-                    disabled={loading}
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="sendInvitation" className="font-medium cursor-pointer">
-                      ارسال ایمیل دعوت‌نامه به کاربر
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      در صورت فعال بودن، لینک فعال‌سازی حساب به ایمیل کاربر ارسال می‌شود.
-                      در غیر این صورت، حساب کاربری بلافاصله فعال خواهد شد.
-                    </p>
-                  </div>
-                </div>
-              </div> */}
 
               {/* Form Actions */}
               <div className="pt-6 border-t flex flex-col sm:flex-row gap-4 justify-end">
@@ -544,7 +545,10 @@ export default function CreateUser() {
                 >
                   لغو
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  disabled={loading || loadingRoles || roles.length === 0}
+                >
                   {loading ? (
                     <>
                       <RefreshCw className="w-4 h-4 ml-2 animate-spin" />
@@ -567,6 +571,19 @@ export default function CreateUser() {
           <p className="text-sm text-muted-foreground">
             پس از ایجاد کاربر، می‌توانید جزئیات بیشتری را در صفحه ویرایش کاربر تنظیم کنید.
           </p>
+          {roles.length === 0 && !loadingRoles && (
+            <p className="text-sm text-amber-600 mt-2">
+              برای ایجاد کاربر، ابتدا باید از{' '}
+              <button 
+                type="button"
+                onClick={() => navigate("/roles")}
+                className="text-primary hover:underline font-medium"
+              >
+                صفحه مدیریت نقش‌ها
+              </button>
+              {' '}حداقل یک نقش ایجاد کنید.
+            </p>
+          )}
         </div>
       </div>
     </div>

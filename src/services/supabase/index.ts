@@ -1,16 +1,15 @@
 import { FormService } from './form-services';
 import { ResponseService } from './response-services';
+import { RoleService } from './role-service';
 import { UserService } from './user-services';
 
-// Export individual services
 export const formService = new FormService();
 export const responseService = new ResponseService();
 export const userService = new UserService();
+export const roleService = new RoleService();
 
-// Export types
 export * from './types';
 
-// Main service class for backward compatibility
 export class SupabaseService {
   forms = formService;
   responses = responseService;
@@ -31,6 +30,11 @@ export class SupabaseService {
   getFormResponsesWithFilters = responseService.getFormResponsesWithFilters.bind(responseService);
   
   getProfiles = userService.getProfiles.bind(userService);
+
+  getRoles = roleService.getRoles.bind(roleService)
+  deleteRole = roleService.deleteRole.bind(roleService)
+  createRole = roleService.createRole.bind(roleService)
+  updateRole = roleService.updateRole.bind(roleService)
 }
 
 // Default export for backward compatibility
