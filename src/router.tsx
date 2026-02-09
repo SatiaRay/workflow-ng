@@ -16,6 +16,7 @@ import LoginPage from "./routes/login";
 import ProtectedRoute from "./components/protected-route";
 import UsersIndex from "./routes/user";
 import CreateUser from "./routes/user/create-user";
+import RolesIndex from "./routes/role";
 
 const brandingRoutes = () => {
   return {
@@ -147,10 +148,24 @@ const userRoutes = () => {
   };
 };
 
+const roleRoutes = () => {
+    return {
+    path: "/roles",
+    element: <Layout />,
+    children: [
+      {
+        path: "",
+        element: <RolesIndex />,
+      },
+    ],
+  };
+}
+
 export const router = createBrowserRouter([
   brandingRoutes(),
   authRoutes(),
   formRoutes(),
   formResponseRoutes(),
   userRoutes(),
+  roleRoutes()
 ]);

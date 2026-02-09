@@ -8,6 +8,7 @@ export default function Layout() {
   const navItems: NavbarItem[] = [
     { label: "خانه", path: "/" },
     { label: "فرم ها", path: "/form" },
+    { label: "نقش ها", path: "/roles" },
     { label: "کاربران", path: "/users" },
   ];
   
