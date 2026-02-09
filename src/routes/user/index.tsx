@@ -42,9 +42,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Import the User type from user-service
 import type { User as UserType } from "@/services/supabase/user-services";
+import { useAuth } from "@/context/auth-context";
 
 export default function UsersIndex() {
   const navigate = useNavigate();
+
+  const {user: authUser}  = useAuth()
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserType[]>([]);
@@ -59,7 +62,9 @@ export default function UsersIndex() {
     try {
       const result = await supabaseService.getProfiles(currentPage, pageSize);
 
-      setUsers(result.data);
+      const users = result.data.filter(user => user.id != authUser?.id)
+
+      setUsers(users);
       setTotalCount(result.total);
     } catch (error: any) {
       console.error("Error fetching users:", error);

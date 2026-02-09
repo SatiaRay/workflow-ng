@@ -1,4 +1,5 @@
 // services/user-service.ts
+import { useAuth } from '@/context/auth-context';
 import { BaseSupabaseService } from './base-service';
 
 export interface User {
@@ -27,7 +28,7 @@ export class UserService extends BaseSupabaseService {
     try {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
-
+      
       // Fetch users with role data using a join
       const { data, error, count } = await this.supabase
         .from('profiles')
