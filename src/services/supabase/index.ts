@@ -30,12 +30,7 @@ export class SupabaseService {
   deleteResponse = responseService.deleteResponse.bind(responseService);
   getFormResponsesWithFilters = responseService.getFormResponsesWithFilters.bind(responseService);
   
-  getUsersWithFilters = userService.getUsersWithFilters.bind(userService);
-  getUserById = userService.getUserById.bind(userService);
-  createUser = userService.createUser.bind(userService);
-  updateUser = userService.updateUser.bind(userService);
-  deleteUser = userService.deleteUser.bind(userService);
-  updateUserStatus = userService.updateUserStatus.bind(userService);
+  getProfiles = userService.getProfiles.bind(userService);
 }
 
 // Default export for backward compatibility

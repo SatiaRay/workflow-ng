@@ -14,6 +14,7 @@ import EditResponse from "./routes/response/edit-response";
 import ShowResponse from "./routes/response/show-response";
 import LoginPage from "./routes/login";
 import ProtectedRoute from "./components/protected-route";
+import UsersIndex from "./routes/user";
 
 const brandingRoutes = () => {
   return {
@@ -128,9 +129,23 @@ const formResponseRoutes = () => {
   };
 };
 
+const userRoutes = () => {
+    return {
+    path: "/user",
+    element: <Layout />,
+    children: [
+      {
+        path: "",
+        element: <UsersIndex />,
+      },
+    ],
+  };
+}
+
 export const router = createBrowserRouter([
   brandingRoutes(),
   authRoutes(),
   formRoutes(),
-  formResponseRoutes()
+  formResponseRoutes(),
+  userRoutes()
 ]);
