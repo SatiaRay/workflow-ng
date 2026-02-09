@@ -26,7 +26,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Filter,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -35,30 +34,20 @@ import {
   Mail,
   Phone,
   User,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface User {
-  id: string;
-  email: string;
-  phone?: string;
-  name?: string;
-  avatar_url?: string;
-  role?: string;
-  is_active: boolean;
-  email_confirmed_at?: string;
-  last_sign_in_at?: string;
-  created_at: string;
-  updated_at?: string;
-}
+// Import the User type from user-service
+import type { User as UserType } from "@/services/supabase/user-services";
 
 export default function UsersIndex() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserType[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -95,6 +84,40 @@ export default function UsersIndex() {
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Function to get role badge variant based on role name
+  const getRoleBadgeVariant = (roleName?: string) => {
+    if (!roleName) return "outline";
+    
+    const roleLower = roleName.toLowerCase();
+    
+    if (roleLower.includes("admin") || roleLower.includes("مدیر")) {
+      return "destructive" as const;
+    } else if (roleLower.includes("editor") || roleLower.includes("ویرایشگر")) {
+      return "default" as const;
+    } else if (roleLower.includes("viewer") || roleLower.includes("بیننده")) {
+      return "secondary" as const;
+    } else {
+      return "outline" as const;
+    }
+  };
+
+  // Function to format role name for display
+  const formatRoleName = (roleName?: string) => {
+    if (!roleName) return "بدون نقش";
+    
+    // You can add custom formatting here if needed
+    // For example, make Persian role names more readable
+    const roleMap: Record<string, string> = {
+      "admin": "مدیر سیستم",
+      "editor": "ویرایشگر",
+      "viewer": "بیننده",
+      "user": "کاربر عادی",
+      // Add more mappings as needed
+    };
+    
+    return roleMap[roleName.toLowerCase()] || roleName;
   };
 
   if (loading && !users.length) {
@@ -139,10 +162,6 @@ export default function UsersIndex() {
               <Badge variant="outline" className="gap-1">
                 <User className="w-3 h-3" />
                 {totalCount} کاربر در مجموع
-              </Badge>
-              <Badge variant="secondary" className="gap-1">
-                <Filter className="w-3 h-3" />
-                {users.length} نمایش
               </Badge>
             </div>
           </div>
@@ -256,56 +275,99 @@ export default function UsersIndex() {
                 <p className="text-muted-foreground mb-4">
                   {loading
                     ? "در حال بارگذاری کاربران..."
-                    : "هیچ کاربری مطابق با فیلترهای فعلی یافت نشد."}
+                    : "هنوز هیچ کاربری در سیستم وجود ندارد."}
                 </p>
+                <Button
+                  onClick={() => navigate("/users/create")}
+                  className="mt-2"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  ایجاد اولین کاربر
+                </Button>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table dir="rtl">
+                <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12 text-center"></TableHead>
+                      <TableHead className="w-12"></TableHead>
                       <TableHead className="text-right">کاربر</TableHead>
                       <TableHead className="text-right">اطلاعات تماس</TableHead>
+                      <TableHead className="text-right">نقش</TableHead>
+                      <TableHead className="text-right">عضویت</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => {
-                      return (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user.avatar_url} />
-                              <AvatarFallback>
-                                {getInitials(user.name || user.email)}
-                              </AvatarFallback>
-                            </Avatar>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">
-                              {user.name || "نامشخص"}
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.avatar_url} />
+                            <AvatarFallback>
+                              {getInitials(user.name || user.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">
+                            {user.name || "نامشخص"}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            ID: {user.id.substring(0, 8)}...
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-sm">
+                              <Mail className="w-3 h-3 text-muted-foreground" />
+                              {user.email}
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              ID: {user.id.substring(0, 8)}...
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
+                            {user.phone && (
                               <div className="flex items-center gap-1 text-sm">
-                                <Mail className="w-3 h-3 text-muted-foreground" />
-                                {user.email}
+                                <Phone className="w-3 h-3 text-muted-foreground" />
+                                {user.phone}
                               </div>
-                              {user.phone && (
-                                <div className="flex items-center gap-1 text-sm">
-                                  <Phone className="w-3 h-3 text-muted-foreground" />
-                                  {user.phone}
-                                </div>
-                              )}
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {user.role ? (
+                            <Badge 
+                              variant={getRoleBadgeVariant(user.role.name)}
+                              className="gap-1"
+                            >
+                              <Shield className="w-3 h-3" />
+                              {formatRoleName(user.role.name)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              <Shield className="w-3 h-3 ml-1" />
+                              بدون نقش
+                            </Badge>
+                          )}
+                          {user.role && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              ID: {user.role.id}
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {new Date(user.created_at).toLocaleDateString("fa-IR", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(user.created_at).toLocaleTimeString("fa-IR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -313,14 +375,6 @@ export default function UsersIndex() {
           </CardContent>
         </Card>
       </div>
-
-      {/* <DeleteUserConfirmation
-        user={userToDelete}
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setUserToDelete(null)}
-      /> */}
     </div>
   );
 }

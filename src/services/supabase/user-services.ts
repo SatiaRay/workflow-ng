@@ -1,5 +1,23 @@
+// services/user-service.ts
 import { BaseSupabaseService } from './base-service';
-import type { User } from './types';
+
+export interface User {
+  id: string;
+  email: string;
+  phone?: string;
+  name?: string;
+  avatar_url?: string;
+  role_id?: number;
+  role?: {
+    id: number;
+    name: string;
+  };
+  is_active: boolean;
+  email_confirmed_at?: string;
+  last_sign_in_at?: string;
+  created_at: string;
+  updated_at?: string;
+}
 
 export class UserService extends BaseSupabaseService {
   async getProfiles(
@@ -10,11 +28,18 @@ export class UserService extends BaseSupabaseService {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
+      // Fetch users with role data using a join
       const { data, error, count } = await this.supabase
         .from('profiles')
-        .select('*', { count: 'exact' })
+        .select(`
+          *,
+          role:roles (
+            id,
+            name
+          )
+        `, { count: 'exact' })
         .range(from, to)
-        .order('created_at', { ascending: false }); // Optional: order by creation date
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching profiles:', error);
