@@ -30,7 +30,6 @@ import {
 import {
   Search,
   Filter,
-  RefreshCw,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -42,16 +41,11 @@ import {
   UserPlus,
   Mail,
   Phone,
-  Calendar,
-  Shield,
   User,
-  CheckCircle,
-  XCircle,
   MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
-import DeleteUserConfirmation from "@/components/delete-user-confirmation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,21 +102,11 @@ export default function UsersIndex() {
     status: "all",
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
   const pageSizes = [10, 25, 50, 100];
-
-  // Delete state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-
-  useEffect(() => {
-    setDeleteDialogOpen(userToDelete !== null);
-  }, [userToDelete]);
 
   // Fetch users with filters
   const fetchUsers = useCallback(async () => {
@@ -163,28 +147,6 @@ export default function UsersIndex() {
     });
     setCurrentPage(1);
   };
-
-  // const handleDeleteConfirm = async () => {
-  //   if (!userToDelete) return;
-
-  //   setDeletingUserId(userToDelete.id);
-  //   try {
-  //     await supabaseService.deleteUser(userToDelete.id);
-
-  //     // Remove from local state
-  //     setUsers((prev) => prev.filter((user) => user.id !== userToDelete.id));
-  //     setTotalCount((prev) => prev - 1);
-
-  //     toast.success("کاربر با موفقیت حذف شد");
-  //   } catch (error: any) {
-  //     console.error("Delete error:", error);
-  //     toast.error(`حذف کاربر ناموفق بود: ${error.message}`);
-  //   } finally {
-  //     setDeleteDialogOpen(false);
-  //     setUserToDelete(null);
-  //     setDeletingUserId(null);
-  //   }
-  // };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -493,14 +455,10 @@ export default function UsersIndex() {
                       <TableHead className="w-12 text-center"></TableHead>
                       <TableHead className="text-right">کاربر</TableHead>
                       <TableHead className="text-right">اطلاعات تماس</TableHead>
-                      <TableHead className="w-14 text-center">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => {
-                      const roleBadge = getRoleBadgeVariant(user.role);
-                      const isDeleting = deletingUserId === user.id;
-
                       return (
                         <TableRow key={user.id}>
                           <TableCell>
@@ -534,42 +492,6 @@ export default function UsersIndex() {
                             </div>
                           </TableCell>
 
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>عملیات</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    navigate(`/users/show/${user.id}`)
-                                  }
-                                >
-                                  <Eye className="w-4 h-4 ml-2" />
-                                  مشاهده جزئیات
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    navigate(`/users/edit/${user.id}`)
-                                  }
-                                >
-                                  <Pencil className="w-4 h-4 ml-2" />
-                                  ویرایش
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => setUserToDelete(user)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4 ml-2" />
-                                  حذف کاربر
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
                         </TableRow>
                       );
                     })}
