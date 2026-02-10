@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import {
   CirclePlay,
-  Cpu,
-  GitBranch,
   Square,
   Fullscreen,
   Minimize,
@@ -11,6 +9,7 @@ import {
   UserCog,
   FileEdit,
   Filter,
+  RefreshCw,
 } from "lucide-react";
 
 const WorkflowEditorSidebar = ({ addNode, fullscreen, setFullscreen }) => {
@@ -31,6 +30,12 @@ const WorkflowEditorSidebar = ({ addNode, fullscreen, setFullscreen }) => {
       color: "bg-cyan-500",
     },
     { type: "condition", icon: Filter, label: "شرط", color: "bg-orange-500" },
+    {
+      type: "change-status",
+      icon: RefreshCw,
+      label: "تغییر وضعیت",
+      color: "bg-indigo-500",
+    },
     { type: "end", icon: Square, label: "پایان", color: "bg-red-500" },
   ];
 

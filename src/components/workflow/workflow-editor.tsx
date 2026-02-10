@@ -18,6 +18,7 @@ import FillFormNode from "./nodes/fill-form";
 import ConditionNode from "./nodes/condition";
 import WorkflowEditorSidebar from "./workflow-editor-sidebar";
 import NodeDetails from "./node-details";
+import ChangeStatusNode from "./nodes/change-status";
 
 // Define node types
 const nodeTypes = {
@@ -26,6 +27,7 @@ const nodeTypes = {
   "assign-task": AssignTaskNode,
   "fill-form": FillFormNode,
   condition: ConditionNode,
+  "change-status": ChangeStatusNode,
 };
 
 // Initial nodes with a start node
@@ -178,7 +180,7 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
   const addNode = useCallback(
     (type) => {
       const { x, y, zoom } = reactFlowInstance.getViewport();
-      const centerX = -x + window.innerWidth / 2 / zoom;
+      const centerX = -x + window.innerWidth / 2 / zoom + 200;
       const centerY = -y + window.innerHeight / 2 / zoom;
 
       const defaultData = {
@@ -186,18 +188,10 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
         description: "",
       };
 
-      // Add specific data for each node type
       switch (type) {
         case "start":
           defaultData.label = "شروع";
           defaultData.description = "نقطه شروع فرآیند";
-          break;
-        case "process":
-          defaultData.label = "فرآیند";
-          break;
-        case "decision":
-          defaultData.label = "تصمیم";
-          defaultData.conditions = ["شرط پیش‌فرض"];
           break;
         case "assign-task":
           defaultData.label = "تخصیص وظیفه";
@@ -214,6 +208,15 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
           defaultData.label = "شرط";
           defaultData.description = "بررسی شرط بر اساس فرم‌های قبلی";
           defaultData.conditionRules = [];
+          break;
+        case "change-status": // Add this case
+          defaultData.label = "تغییر وضعیت";
+          defaultData.description = "تغییر وضعیت وظیفه";
+          defaultData.status = "";
+          defaultData.statusLabel = "";
+          defaultData.statusColor = "#3b82f6";
+          defaultData.assignToRole = null;
+          defaultData.shouldReassign = false;
           break;
         case "end":
           defaultData.label = "پایان";
