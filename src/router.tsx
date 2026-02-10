@@ -17,6 +17,8 @@ import ProtectedRoute from "./components/protected-route";
 import UsersIndex from "./routes/user";
 import CreateUser from "./routes/user/create-user";
 import RolesIndex from "./routes/role";
+import WorkflowsIndex from "./routes/workflow";
+import CreateWorkflow from "./routes/workflow/create-workflow";
 
 const brandingRoutes = () => {
   return {
@@ -149,7 +151,7 @@ const userRoutes = () => {
 };
 
 const roleRoutes = () => {
-    return {
+  return {
     path: "/roles",
     element: <Layout />,
     children: [
@@ -159,13 +161,31 @@ const roleRoutes = () => {
       },
     ],
   };
-}
+};
+
+const workflowRoutes = () => {
+  return {
+    path: "/workflows",
+    element: <Layout />,
+    children: [
+      {
+        path: "",
+        element: <WorkflowsIndex />,
+      },
+      {
+        path: "create",
+        element: <CreateWorkflow />,
+      },
+    ],
+  };
+};
 
 export const router = createBrowserRouter([
   brandingRoutes(),
   authRoutes(),
   formRoutes(),
+  workflowRoutes(),
   formResponseRoutes(),
   userRoutes(),
-  roleRoutes()
+  roleRoutes(),
 ]);
