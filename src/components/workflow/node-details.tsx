@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -17,7 +18,6 @@ import { RoleService } from "@/services/supabase/role-service";
 const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
   const [label, setLabel] = useState(node.data.label || "");
   const [description, setDescription] = useState(node.data.description || "");
-  const [conditions, setConditions] = useState(node.data.conditions || [""]);
 
   // For assign-task node
   const [selectedRole, setSelectedRole] = useState(node.data.role || null);
@@ -29,13 +29,17 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
   const [conditionRules, setConditionRules] = useState(
     node.data.conditionRules || [],
   );
-  const [availableFormFields, setAvailableFormFields] = useState([]);
+  const [availableFormsForCondition, setAvailableFormsForCondition] = useState(
+    [],
+  );
+  const [formFields, setFormFields] = useState({}); // { formId: [fields] }
 
   // Load data based on node type
   useEffect(() => {
     const loadData = async () => {
+      const formService = new FormService();
+
       if (node.type === "assign-task" || node.type === "fill-form") {
-        const formService = new FormService();
         const forms = await formService.getForms();
         setAvailableForms(forms);
 
@@ -46,34 +50,42 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
         }
       }
 
-      // Load available form fields for condition node
+      // Load available forms for condition node
       if (node.type === "condition") {
-        const formService = new FormService();
         const forms = await formService.getForms();
+        setAvailableFormsForCondition(forms);
 
-        // Extract fields from all forms
-        const fields = forms.flatMap((form) => {
+        // Load fields for each form
+        const fieldsMap = {};
+        for (const form of forms) {
           try {
             const schema =
               typeof form.schema === "string"
                 ? JSON.parse(form.schema)
                 : form.schema;
-            return (schema?.fields || []).map((field) => ({
-              ...field,
-              formId: form.id,
-              formTitle: form.title,
-            }));
+            fieldsMap[form.id] = schema?.fields || [];
           } catch (error) {
-            return [];
+            fieldsMap[form.id] = [];
           }
-        });
+        }
+        setFormFields(fieldsMap);
 
-        setAvailableFormFields(fields);
+        // Initialize condition rules from existing data
+        if (node.data.conditionRules) {
+          setConditionRules(
+            node.data.conditionRules.map((rule) => ({
+              ...rule,
+              selectedFormId: rule.formId || null,
+              selectedField: rule.field || "",
+              fieldType: rule.fieldType || "text",
+            })),
+          );
+        }
       }
     };
 
     loadData();
-  }, [node.type]);
+  }, [node.type, node.data.conditionRules]);
 
   const handleSave = () => {
     const updates = {
@@ -82,20 +94,33 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
     };
 
     switch (node.type) {
-      case "decision":
-        updates.conditions = conditions.filter((c) => c.trim() !== "");
-        break;
       case "assign-task":
-        updates.role = selectedRole;
-        updates.form = selectedForm;
+        updates.role = selectedRole?.id === "none" ? null : selectedRole;
+        updates.form = selectedForm?.id === "none" ? null : selectedForm;
         break;
       case "fill-form":
-        updates.form = selectedForm;
+        updates.form = selectedForm?.id === "none" ? null : selectedForm;
         break;
       case "condition":
-        updates.conditionRules = conditionRules.filter(
-          (rule) => rule.field && rule.operator && rule.value !== undefined,
-        );
+        // Filter out invalid rules and format them properly
+        updates.conditionRules = conditionRules
+          .filter(
+            (rule) =>
+              rule.selectedFormId &&
+              rule.selectedField &&
+              rule.selectedField !== "none" &&
+              rule.operator &&
+              rule.operator !== "none" &&
+              (["is_empty", "is_not_empty"].includes(rule.operator) ||
+                rule.value !== undefined),
+          )
+          .map((rule) => ({
+            formId: rule.selectedFormId,
+            field: rule.selectedField,
+            operator: rule.operator,
+            value: rule.value || "",
+            fieldType: rule.fieldType || "text",
+          }));
         break;
     }
 
@@ -105,25 +130,44 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
 
   // Condition node functions
   const addConditionRule = () => {
-    setConditionRules([
-      ...conditionRules,
-      {
-        field: "",
-        operator: "equals",
-        value: "",
-        formId: null,
-      },
-    ]);
+    const newRule = {
+      selectedFormId: null,
+      selectedField: "none",
+      operator: "none",
+      value: "",
+      fieldType: "text",
+    };
+    setConditionRules([...conditionRules, newRule]);
   };
 
   const updateConditionRule = (index, field, value) => {
     const newRules = [...conditionRules];
-    newRules[index] = { ...newRules[index], [field]: value };
+    const updatedRule = {
+      ...newRules[index],
+      [field]: value,
+      // Reset dependent fields when form changes
+      ...(field === "selectedFormId" &&
+        value !== "none" && {
+          selectedField: "none",
+          operator: "none",
+          value: "",
+          fieldType: "text",
+        }),
+      // Reset operator when field changes
+      ...(field === "selectedField" &&
+        value !== "none" && {
+          operator: "none",
+          value: "",
+          fieldType: getFieldType(newRules[index].selectedFormId, value),
+        }),
+    };
+    newRules[index] = updatedRule;
     setConditionRules(newRules);
   };
 
   const removeConditionRule = (index) => {
-    setConditionRules(conditionRules.filter((_, i) => i !== index));
+    const newRules = conditionRules.filter((_, i) => i !== index);
+    setConditionRules(newRules);
   };
 
   const getAvailableOperators = (fieldType) => {
@@ -177,6 +221,24 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
     return operators;
   };
 
+  const getSelectedFormFields = (formId) => {
+    if (!formId) return [];
+    const fields = formFields[formId] || [];
+    console.log(fields);
+    
+    return fields;
+  };
+
+  const getFieldType = (formId, fieldName) => {
+    if (!formId || !fieldName || fieldName === "none") {
+      return "text";
+    }
+
+    const fields = getSelectedFormFields(formId);
+    const field = fields.find((f) => f.name === fieldName);
+    return field?.type || "text";
+  };
+
   return (
     <div className="absolute right-4 top-4 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 max-h-[80vh] overflow-y-auto">
       <div className="p-4">
@@ -224,7 +286,7 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
             <>
               <div>
                 <Label>نقش مسئول</Label>
-                <Select 
+                <Select
                   value={selectedRole?.id?.toString() || "none"}
                   onValueChange={(value) => {
                     if (value === "none") {
@@ -258,18 +320,23 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
             <div>
               <Label>فرم</Label>
               <Select
-                value={selectedForm?.id?.toString() || ""}
+                value={selectedForm?.id?.toString() || "none"}
                 onValueChange={(value) => {
-                  const form = availableForms.find(
-                    (f) => f.id.toString() === value,
-                  );
-                  setSelectedForm(form);
+                  if (value === "none") {
+                    setSelectedForm(null);
+                  } else {
+                    const form = availableForms.find(
+                      (f) => f.id.toString() === value,
+                    );
+                    setSelectedForm(form);
+                  }
                 }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="انتخاب فرم" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">انتخاب فرم</SelectItem>
                   {availableForms.map((form) => (
                     <SelectItem key={form.id} value={form.id.toString()}>
                       {form.title}
@@ -285,82 +352,130 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
             <div>
               <Label className="mb-2 block">شرط‌ها</Label>
               <div className="space-y-3">
-                {conditionRules.map((rule, index) => (
-                  <div key={index} className="p-3 border rounded-lg space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">
-                        شرط {index + 1}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeConditionRule(index)}
-                        disabled={conditionRules.length <= 1}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
+                {conditionRules.map((rule, index) => {
+                  return (
+                    <div
+                      key={index}
+                      className="p-3 border rounded-lg space-y-2"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">
+                          شرط {index + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            removeConditionRule(index);
+                          }}
+                          disabled={conditionRules.length <= 1}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
 
-                    <div>
-                      <Label htmlFor={`field-${index}`} className="text-xs">
-                        فیلد
-                      </Label>
-                      <Select
-                        value={rule.field || ""}
-                        onValueChange={(value) => {
-                          const selectedField = availableFormFields.find(
-                            (f) => `${f.formId}_${f.name}` === value,
-                          );
-                          updateConditionRule(index, "field", value);
-                          if (selectedField) {
-                            updateConditionRule(
-                              index,
-                              "formId",
-                              selectedField.formId,
-                            );
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="انتخاب فیلد" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableFormFields.map((field) => (
-                            <SelectItem
-                              key={`${field.formId}_${field.name}`}
-                              value={`${field.formId}_${field.name}`}
-                            >
-                              {field.formTitle} - {field.label || field.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {rule.field && (
-                      <>
-                        <div>
-                          <Label
-                            htmlFor={`operator-${index}`}
-                            className="text-xs"
-                          >
-                            عملگر
-                          </Label>
-                          <Select
-                            value={rule.operator}
-                            onValueChange={(value) =>
-                              updateConditionRule(index, "operator", value)
+                      {/* Step 1: Select Form */}
+                      <div>
+                        <Label className="text-xs mb-1 block">فرم</Label>
+                        <Select
+                          value={rule.selectedFormId?.toString() || "none"}
+                          onValueChange={(value) => {
+                            if (value === "none") {
+                              updateConditionRule(
+                                index,
+                                "selectedFormId",
+                                null,
+                              );
+                            } else {
+                              updateConditionRule(
+                                index,
+                                "selectedFormId",
+                                parseInt(value),
+                              );
                             }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="انتخاب فرم" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">انتخاب فرم</SelectItem>
+                            {availableFormsForCondition.map((form) => (
+                              <SelectItem
+                                key={form.id}
+                                value={form.id.toString()}
+                              >
+                                {form.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Step 2: Select Field from chosen form */}
+                      {rule.selectedFormId && (
+                        <div>
+                          <Label className="text-xs mb-1 block">فیلد</Label>
+                          <Select
+                            value={rule.selectedField || "none"}
+                            onValueChange={(value) => {
+                              updateConditionRule(
+                                index,
+                                "selectedField",
+                                value,
+                              );
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="انتخاب فیلد" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectItem value="none">
+                                  انتخاب فیلد
+                                </SelectItem>
+                                {getSelectedFormFields(rule.selectedFormId).map(
+                                  (field) => {
+                                    return (
+                                      <SelectItem
+                                        key={field.id}
+                                        value={field.id}
+                                      >
+                                        {field.label}
+                                        {field.type && (
+                                          <span className="text-xs text-gray-500 mr-2">
+                                            {" "}
+                                            ({field.type})
+                                          </span>
+                                        )}
+                                      </SelectItem>
+                                    );
+                                  },
+                                )}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {/* Step 3: Select Operator */}
+                      {rule.selectedField && rule.selectedField !== "none" && (
+                        <div>
+                          <Label className="text-xs mb-1 block">عملگر</Label>
+                          <Select
+                            value={rule.operator || "none"}
+                            onValueChange={(value) => {
+                              updateConditionRule(index, "operator", value);
+                            }}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="انتخاب عملگر" />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="none">انتخاب عملگر</SelectItem>
                               {getAvailableOperators(
-                                availableFormFields.find(
-                                  (f) => `${f.formId}_${f.name}` === rule.field,
-                                )?.type,
+                                rule.fieldType || "text",
                               ).map((operator) => (
                                 <SelectItem
                                   key={operator.value}
@@ -372,86 +487,42 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                             </SelectContent>
                           </Select>
                         </div>
+                      )}
 
-                        {!["is_empty", "is_not_empty"].includes(
-                          rule.operator,
-                        ) && (
+                      {/* Step 4: Enter Value (if applicable) */}
+                      {rule.operator &&
+                        rule.operator !== "none" &&
+                        rule.operator !== "is_empty" &&
+                        rule.operator !== "is_not_empty" && (
                           <div>
-                            <Label
-                              htmlFor={`value-${index}`}
-                              className="text-xs"
-                            >
-                              مقدار
-                            </Label>
+                            <Label className="text-xs mb-1 block">مقدار</Label>
                             <Input
-                              id={`value-${index}`}
                               value={rule.value || ""}
-                              onChange={(e) =>
+                              onChange={(e) => {
                                 updateConditionRule(
                                   index,
                                   "value",
                                   e.target.value,
-                                )
-                              }
+                                );
+                              }}
                               placeholder="مقدار شرط"
                             />
                           </div>
                         )}
-                      </>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
 
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={addConditionRule}
+                  onClick={() => {
+                    addConditionRule();
+                  }}
                   className="w-full"
                 >
                   <Plus className="w-4 h-4 ml-1" />
-                  افزودن شرط جدید
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Decision Node Conditions (existing) */}
-          {node.type === "decision" && (
-            <div>
-              <Label className="mb-2 block">شرایط</Label>
-              <div className="space-y-2">
-                {conditions.map((condition, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      value={condition}
-                      onChange={(e) => {
-                        const newConditions = [...conditions];
-                        newConditions[index] = e.target.value;
-                        setConditions(newConditions);
-                      }}
-                      placeholder={`شرط ${index + 1}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        setConditions(conditions.filter((_, i) => i !== index));
-                      }}
-                      disabled={conditions.length <= 1}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setConditions([...conditions, ""])}
-                  className="w-full"
-                >
                   افزودن شرط جدید
                 </Button>
               </div>
