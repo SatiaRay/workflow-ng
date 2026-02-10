@@ -55,6 +55,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import DeleteWorkflowConfirmation from "@/components/delete-workflow-confirmation"; // Add this import
 
 interface Workflow {
   id: number;
@@ -89,6 +90,10 @@ export default function WorkflowsIndex() {
   // Delete state
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  
+  // Add state for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
 
   const fetchWorkflows = useCallback(async () => {
     setLoading(true);
@@ -148,11 +153,8 @@ export default function WorkflowsIndex() {
     }
   };
 
+  // Updated handleDelete function
   const handleDelete = async (id: number) => {
-    if (!confirm("آیا مطمئن هستید که می‌خواهید این گردش‌کار را حذف کنید؟")) {
-      return;
-    }
-
     setDeletingId(id);
     try {
       await supabaseService.deleteWorkflow(id);
@@ -167,6 +169,27 @@ export default function WorkflowsIndex() {
       toast.error(`حذف گردش‌کار ناموفق بود: ${error.message}`);
     } finally {
       setDeletingId(null);
+      setDeleteDialogOpen(false);
+      setWorkflowToDelete(null);
+    }
+  };
+
+  // Open delete confirmation dialog
+  const openDeleteDialog = (workflow: Workflow) => {
+    setWorkflowToDelete(workflow);
+    setDeleteDialogOpen(true);
+  };
+
+  // Cancel delete
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setWorkflowToDelete(null);
+  };
+
+  // Confirm delete
+  const confirmDelete = () => {
+    if (workflowToDelete) {
+      handleDelete(workflowToDelete.id);
     }
   };
 
@@ -378,12 +401,12 @@ export default function WorkflowsIndex() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>نام گردش‌کار</TableHead>
-                      <TableHead>فرم ماشه</TableHead>
-                      <TableHead>وضعیت</TableHead>
-                      <TableHead>نمونه‌ها</TableHead>
-                      <TableHead>تاریخ ایجاد</TableHead>
-                      <TableHead className="w-32">عملیات</TableHead>
+                      <TableHead className="text-right">نام گردش‌کار</TableHead>
+                      <TableHead className="text-right">فرم ماشه</TableHead>
+                      <TableHead className="text-right">وضعیت</TableHead>
+                      <TableHead className="text-right">نمونه‌ها</TableHead>
+                      <TableHead className="text-right">تاریخ ایجاد</TableHead>
+                      <TableHead className="w-32 text-right">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -489,7 +512,7 @@ export default function WorkflowsIndex() {
                               <DropdownMenuSeparator />
 
                               <DropdownMenuItem
-                                onClick={() => handleDelete(workflow.id)}
+                                onClick={() => openDeleteDialog(workflow)}
                                 disabled={deletingId === workflow.id}
                                 className="text-red-600"
                               >
@@ -512,6 +535,15 @@ export default function WorkflowsIndex() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteWorkflowConfirmation
+        workflow={workflowToDelete}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </div>
   );
 }
