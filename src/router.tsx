@@ -18,6 +18,7 @@ import UsersIndex from "./routes/user";
 import CreateUser from "./routes/user/create-user";
 import RolesIndex from "./routes/role";
 import WorkflowsIndex from "./routes/workflow";
+import CreateWorkflow from "./routes/workflow/create-workflow";
 
 const brandingRoutes = () => {
   return {
@@ -170,6 +171,10 @@ const workflowRoutes = () => {
       {
         path: "",
         element: <WorkflowsIndex />,
+      },
+      {
+        path: "create",
+        element: <CreateWorkflow />,
       },
     ],
   };
