@@ -58,16 +58,16 @@ interface FormErrors {
 const steps = [
   {
     title: "اطلاعات پایه",
-    description: "تنظیمات اولیه"
+    description: "تنظیمات اولیه",
   },
   {
     title: "طراحی گردش کار",
-    description: "ایجاد فرآیند"
+    description: "ایجاد فرآیند",
   },
   {
     title: "مرور و ایجاد",
-    description: "تایید نهایی"
-  }
+    description: "تایید نهایی",
+  },
 ];
 
 export default function CreateWorkflow() {
@@ -88,35 +88,24 @@ export default function CreateWorkflow() {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Load available forms
   useEffect(() => {
-    const loadForms = async () => {
-      try {
-        // You'll need to implement getForms in your supabaseService
-        // const formsData = await supabaseService.getForms();
-        // setForms(formsData);
-
-        // For now, mock data
-        setForms([
-          { id: 1, title: "فرم ثبت نام" },
-          { id: 2, title: "فرم درخواست" },
-          { id: 3, title: "فرم بازخورد" },
-        ]);
-      } catch (error) {
-        console.error("Error loading forms:", error);
-        toast.error("بارگذاری لیست فرم‌ها ناموفق بود");
-      } finally {
-        setLoadingForms(false);
-      }
-    };
-
     loadForms();
   }, []);
 
-  // Handle workflow editor changes
+  const loadForms = async () => {
+    try {
+      const formsData = await supabaseService.getForms();
+      setForms(formsData);
+    } catch (error) {
+      console.error("Error loading forms:", error);
+      toast.error("بارگذاری لیست فرم‌ها ناموفق بود");
+    } finally {
+      setLoadingForms(false);
+    }
+  };
+
   const handleWorkflowChange = useCallback((schema: any) => {
     setFormData((prev) => {
-      // Only update if schema actually changed
       if (JSON.stringify(prev.schema) === JSON.stringify(schema)) {
         return prev;
       }
@@ -127,7 +116,6 @@ export default function CreateWorkflow() {
     });
   }, []);
 
-  // Validate form for step 1
   const validateStep1 = (): boolean => {
     const newErrors: FormErrors = {};
 
@@ -143,7 +131,6 @@ export default function CreateWorkflow() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Validate step 2 (workflow design)
   const validateStep2 = (): boolean => {
     const hasStartNode = formData.schema.nodes.some(
       (node: any) => node.type === "start",
@@ -157,14 +144,12 @@ export default function CreateWorkflow() {
     return true;
   };
 
-  // Handle input changes
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
 
-    // Clear error for this field
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -174,7 +159,6 @@ export default function CreateWorkflow() {
     }
   };
 
-  // Navigation between steps
   const nextStep = () => {
     if (currentStep === 0) {
       if (!validateStep1()) {
@@ -185,7 +169,7 @@ export default function CreateWorkflow() {
         return;
       }
     }
-    
+
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
@@ -307,9 +291,7 @@ export default function CreateWorkflow() {
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) =>
-                      handleInputChange("name", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("name", e.target.value)}
                     placeholder="مثال: فرآیند تایید درخواست"
                     disabled={loading}
                   />
@@ -363,10 +345,7 @@ export default function CreateWorkflow() {
                         </div>
                       ) : (
                         forms.map((form) => (
-                          <SelectItem
-                            key={form.id}
-                            value={form.id.toString()}
-                          >
+                          <SelectItem key={form.id} value={form.id.toString()}>
                             {form.title}
                           </SelectItem>
                         ))
@@ -404,7 +383,8 @@ export default function CreateWorkflow() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    وضعیت پیش‌فرض: پیش‌نویس (پس از تکمیل طراحی می‌توانید فعال کنید)
+                    وضعیت پیش‌فرض: پیش‌نویس (پس از تکمیل طراحی می‌توانید فعال
+                    کنید)
                   </p>
                 </div>
               </div>
@@ -429,7 +409,9 @@ export default function CreateWorkflow() {
                     <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
                       <CirclePlay className="w-5 h-5 text-green-600" />
                     </div>
-                    <h4 className="font-semibold text-green-700 text-sm">گره شروع</h4>
+                    <h4 className="font-semibold text-green-700 text-sm">
+                      گره شروع
+                    </h4>
                     <p className="text-xs text-muted-foreground mt-1">
                       نقطه آغاز فرآیند
                     </p>
@@ -439,7 +421,9 @@ export default function CreateWorkflow() {
                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-2">
                       <Cpu className="w-5 h-5 text-blue-600" />
                     </div>
-                    <h4 className="font-semibold text-blue-700 text-sm">گره فرآیند</h4>
+                    <h4 className="font-semibold text-blue-700 text-sm">
+                      گره فرآیند
+                    </h4>
                     <p className="text-xs text-muted-foreground mt-1">
                       عملیات یا وظیفه
                     </p>
@@ -449,7 +433,9 @@ export default function CreateWorkflow() {
                     <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mb-2">
                       <GitBranch className="w-5 h-5 text-yellow-600" />
                     </div>
-                    <h4 className="font-semibold text-yellow-700 text-sm">گره تصمیم</h4>
+                    <h4 className="font-semibold text-yellow-700 text-sm">
+                      گره تصمیم
+                    </h4>
                     <p className="text-xs text-muted-foreground mt-1">
                       انشعاب شرطی
                     </p>
@@ -459,7 +445,9 @@ export default function CreateWorkflow() {
                     <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mb-2">
                       <Square className="w-5 h-5 text-red-600" />
                     </div>
-                    <h4 className="font-semibold text-red-700 text-sm">گره پایان</h4>
+                    <h4 className="font-semibold text-red-700 text-sm">
+                      گره پایان
+                    </h4>
                     <p className="text-xs text-muted-foreground mt-1">
                       پایان فرآیند
                     </p>
@@ -562,14 +550,18 @@ export default function CreateWorkflow() {
                         <Label className="text-sm text-muted-foreground">
                           توضیحات
                         </Label>
-                        <p className="font-medium">{formData.description || "بدون توضیحات"}</p>
+                        <p className="font-medium">
+                          {formData.description || "بدون توضیحات"}
+                        </p>
                       </div>
                       <div>
                         <Label className="text-sm text-muted-foreground">
                           فرم ماشه
                         </Label>
                         <p className="font-medium">
-                          {forms.find(f => f.id.toString() === formData.trigger_form_id)?.title || "-"}
+                          {forms.find(
+                            (f) => f.id.toString() === formData.trigger_form_id,
+                          )?.title || "-"}
                         </p>
                       </div>
                       <div>
@@ -651,7 +643,8 @@ export default function CreateWorkflow() {
                           <AlertCircle className="w-5 h-5 text-red-500" />
                         )}
                         <span className="text-sm">
-                          گره شروع: {nodeStats.start > 0 ? "وجود دارد" : "وجود ندارد"}
+                          گره شروع:{" "}
+                          {nodeStats.start > 0 ? "وجود دارد" : "وجود ندارد"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -661,7 +654,8 @@ export default function CreateWorkflow() {
                           <AlertCircle className="w-5 h-5 text-yellow-500" />
                         )}
                         <span className="text-sm">
-                          گره پایان: {nodeStats.end > 0 ? "وجود دارد" : "اختیاری"}
+                          گره پایان:{" "}
+                          {nodeStats.end > 0 ? "وجود دارد" : "اختیاری"}
                         </span>
                       </div>
                     </div>
@@ -673,7 +667,8 @@ export default function CreateWorkflow() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      پس از ایجاد گردش کار، می‌توانید آن را در لیست گردش‌کارها مشاهده و مدیریت کنید.
+                      پس از ایجاد گردش کار، می‌توانید آن را در لیست گردش‌کارها
+                      مشاهده و مدیریت کنید.
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -729,11 +724,7 @@ export default function CreateWorkflow() {
         <div className="mt-8 flex justify-between">
           <div>
             {currentStep > 0 && (
-              <Button
-                variant="outline"
-                onClick={prevStep}
-                disabled={loading}
-              >
+              <Button variant="outline" onClick={prevStep} disabled={loading}>
                 <ChevronLeft className="w-4 h-4 ml-2" />
                 مرحله قبل
               </Button>
