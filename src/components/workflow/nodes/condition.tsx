@@ -1,10 +1,34 @@
-import React, { memo } from 'react';
-import { Handle, Position } from 'reactflow';
-import { Filter } from 'lucide-react';
+import React, { memo } from "react";
+import { Handle, Position } from "reactflow";
+import { Filter, FileText } from "lucide-react";
 
 const ConditionNode = ({ data }) => {
   const hasConditions = data.conditionRules && data.conditionRules.length > 0;
-  
+
+  const formatConditionValue = (condition) => {
+    const { operator, value, fieldType } = condition;
+
+    if (["is_empty", "is_not_empty"].includes(operator)) {
+      return "";
+    }
+
+    if (
+      fieldType === "radio" ||
+      fieldType === "select" ||
+      fieldType === "checkbox"
+    ) {
+      // Try to parse the value if it's JSON stringified
+      try {
+        const parsed = JSON.parse(value);
+        return typeof parsed === "string" ? parsed : value;
+      } catch {
+        return value;
+      }
+    }
+
+    return value;
+  };
+
   return (
     <div className="px-4 py-3 shadow-lg rounded-lg bg-white dark:bg-gray-800 border-2 border-orange-500 min-w-[220px]">
       <Handle
@@ -12,28 +36,38 @@ const ConditionNode = ({ data }) => {
         position={Position.Left}
         className="w-3 h-3 !bg-orange-500"
       />
-      
+
       <div className="flex items-start">
         <div className="rounded-lg w-10 h-10 flex items-center justify-center bg-orange-100 dark:bg-orange-900 shrink-0">
           <Filter className="w-6 h-6 text-orange-600 dark:text-orange-400" />
         </div>
-        
+
         <div className="ml-3 flex-1">
           <div className="text-sm font-semibold text-gray-900 dark:text-white">
-            {data.label || 'شرط'}
+            {data.label || "شرط"}
           </div>
-          
-          <div className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-            {data.description || 'بررسی شرط بر اساس فرم‌های قبلی'}
+
+          <div className="text-xs text-gray-600 dark:text-gray-gray-300 mt-1">
+            {data.description || "بررسی شرط بر اساس فرم‌های قبلی"}
           </div>
-          
+
+          {data.selectedForm && (
+            <div className="mt-2 flex items-center">
+              <FileText className="w-3 h-3 text-blue-500 mr-1" />
+              <span className="text-xs text-blue-600 dark:text-blue-400">
+                فرم: {data.selectedForm.title}
+              </span>
+            </div>
+          )}
+
           {hasConditions && (
             <div className="mt-2 space-y-1">
               {data.conditionRules.slice(0, 3).map((condition, index) => (
                 <div key={index} className="flex items-center">
                   <div className="w-2 h-2 rounded-full bg-orange-500 mr-2"></div>
                   <div className="text-xs truncate">
-                    {condition.field?.split('_').pop()} {condition.operator} {condition.value}
+                    {condition.fieldLabel} {condition.operator}{" "}
+                    {formatConditionValue(condition)}
                   </div>
                 </div>
               ))}
@@ -46,7 +80,7 @@ const ConditionNode = ({ data }) => {
           )}
         </div>
       </div>
-      
+
       {/* Dynamic output handles on the right */}
       {hasConditions ? (
         data.conditionRules.map((condition, index) => (
@@ -58,7 +92,7 @@ const ConditionNode = ({ data }) => {
             className="w-3 h-3 !bg-orange-500"
             style={{
               top: `${((index + 1) * 100) / (data.conditionRules.length + 1)}%`,
-              transform: 'translateY(-50%)',
+              transform: "translateY(-50%)",
             }}
           />
         ))

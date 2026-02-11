@@ -10,13 +10,25 @@ import {
   FileEdit,
   Filter,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 
-const WorkflowEditorSidebar = ({ addNode, fullscreen, setFullscreen }) => {
+const WorkflowEditorSidebar = ({ 
+  addNode, 
+  fullscreen, 
+  setFullscreen,
+  isConditionDisabled,
+  latestFillFormNode 
+}) => {
   const [extended, setExtended] = useState(false);
 
   const nodeButtons = [
-    { type: "start", icon: CirclePlay, label: "شروع", color: "bg-green-500" },
+    { 
+      type: "start", 
+      icon: CirclePlay, 
+      label: "شروع", 
+      color: "bg-green-500" 
+    },
     {
       type: "assign-task",
       icon: UserCog,
@@ -29,14 +41,25 @@ const WorkflowEditorSidebar = ({ addNode, fullscreen, setFullscreen }) => {
       label: "تکمیل فرم",
       color: "bg-cyan-500",
     },
-    { type: "condition", icon: Filter, label: "شرط", color: "bg-orange-500" },
+    { 
+      type: "condition", 
+      icon: Filter, 
+      label: "شرط", 
+      color: "bg-orange-500",
+      disabled: isConditionDisabled
+    },
     {
       type: "change-status",
       icon: RefreshCw,
       label: "تغییر وضعیت",
       color: "bg-indigo-500",
     },
-    { type: "end", icon: Square, label: "پایان", color: "bg-red-500" },
+    { 
+      type: "end", 
+      icon: Square, 
+      label: "پایان", 
+      color: "bg-red-500" 
+    },
   ];
 
   return (
@@ -47,20 +70,54 @@ const WorkflowEditorSidebar = ({ addNode, fullscreen, setFullscreen }) => {
     >
       <div className="flex flex-col h-full p-2">
         <div className="flex-1 space-y-2">
-          {nodeButtons.map(({ type, icon: Icon, label, color }) => (
+          {nodeButtons.map(({ type, icon: Icon, label, color, disabled = false }) => (
             <button
               key={type}
-              onClick={() => addNode(type)}
+              onClick={() => !disabled && addNode(type)}
+              disabled={disabled}
               className={`w-full p-2 rounded-md flex items-center justify-center ${
                 extended ? "justify-start space-x-2" : ""
-              } ${color} text-white hover:opacity-90 transition-opacity`}
-              title={label}
+              } ${color} text-white hover:opacity-90 transition-opacity ${
+                disabled ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              title={disabled ? "ابتدا یک گره \"تکمیل فرم\" اضافه کنید" : label}
             >
               <Icon className="w-5 h-5" />
-              {extended && <span className="text-sm">{label}</span>}
+              {extended && (
+                <div className="flex items-center justify-between flex-1">
+                  <span className="text-sm">{label}</span>
+                  {disabled && (
+                    <AlertCircle className="w-4 h-4 text-white/70" />
+                  )}
+                </div>
+              )}
             </button>
           ))}
         </div>
+
+        {/* Status information */}
+        {extended && isConditionDisabled && (
+          <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+            <div className="text-xs text-amber-800 dark:text-amber-200">
+              <div className="font-medium mb-1">شرط غیرفعال:</div>
+              <div>برای افزودن شرط، ابتدا یک گره "تکمیل فرم" اضافه کنید.</div>
+            </div>
+          </div>
+        )}
+
+        {extended && latestFillFormNode && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+            <div className="text-xs text-blue-800 dark:text-blue-200">
+              <div className="font-medium mb-1">فرم فعال:</div>
+              <div>
+                فرم: {latestFillFormNode.data.form?.title || "انتخاب نشده"}
+              </div>
+              <div className="text-xs opacity-75 mt-1">
+                شرط‌ها بر اساس این فرم تعریف می‌شوند.
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <button

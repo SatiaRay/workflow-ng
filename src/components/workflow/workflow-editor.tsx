@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+// In WorkflowEditorContent component
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -8,53 +9,57 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
   useReactFlow,
-} from "reactflow";
-import "reactflow/dist/style.css";
-import { v4 as uuidv4 } from "uuid";
-import EndNode from "./nodes/end";
-import StartNode from "./nodes/start";
-import AssignTaskNode from "./nodes/assign-task";
-import FillFormNode from "./nodes/fill-form";
-import ConditionNode from "./nodes/condition";
-import WorkflowEditorSidebar from "./workflow-editor-sidebar";
-import NodeDetails from "./node-details";
-import ChangeStatusNode from "./nodes/change-status";
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { v4 as uuidv4 } from 'uuid';
+import Start from './nodes/start';
+import End from './nodes/end';
+import AssignTask from './nodes/assign-task';
+import FillForm from './nodes/fill-form';
+import Condition from './nodes/condition';
+import ChangeStatus from './nodes/change-status';
+import WorkflowEditorSidebar from './workflow-editor-sidebar';
+import NodeDetails from './node-details';
 
 // Define node types
 const nodeTypes = {
-  start: StartNode,
-  end: EndNode,
-  "assign-task": AssignTaskNode,
-  "fill-form": FillFormNode,
-  condition: ConditionNode,
-  "change-status": ChangeStatusNode,
+  start: Start,
+  end: End,
+  'assign-task': AssignTask,
+  'fill-form': FillForm,
+  condition: Condition,
+  'change-status': ChangeStatus,
 };
 
 // Initial nodes with a start node
 const initialNodes = [
   {
-    id: "1",
-    type: "start",
-    position: { x: 250, y: 25 },
+    id: '1',
+    type: 'start',
+    position: { x: 50, y: 250 },
     data: {
-      label: "شروع",
-      description: "نقطه شروع فرآیند",
-      conditions: [],
+      label: 'شروع',
+      description: 'نقطه شروع فرآیند',
     },
   },
 ];
 
-const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
+const WorkflowEditorContent = ({
+  onChange,
+  workflowData = null,
+}) => {
   // State management
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    workflowData?.nodes || initialNodes,
+    workflowData?.nodes || initialNodes
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(
-    workflowData?.edges || [],
+    workflowData?.edges || []
   );
-
+  
   const [selectedNode, setSelectedNode] = useState(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [isConditionDisabled, setIsConditionDisabled] = useState(true);
+  const [latestFillFormNode, setLatestFillFormNode] = useState(null);
 
   // Refs to track previous state and prevent infinite loops
   const previousNodesRef = useRef(nodes);
@@ -72,33 +77,74 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
     }
 
     // Check if nodes or edges actually changed
-    const nodesChanged =
-      JSON.stringify(nodes) !== JSON.stringify(previousNodesRef.current);
-    const edgesChanged =
-      JSON.stringify(edges) !== JSON.stringify(previousEdgesRef.current);
+    const nodesChanged = JSON.stringify(nodes) !== JSON.stringify(previousNodesRef.current);
+    const edgesChanged = JSON.stringify(edges) !== JSON.stringify(previousEdgesRef.current);
 
     if ((nodesChanged || edgesChanged) && onChange) {
       onChange({ nodes, edges });
-
+      
       // Update refs after calling onChange
       previousNodesRef.current = nodes;
       previousEdgesRef.current = edges;
     }
   }, [nodes, edges, onChange]);
 
+  // Check if condition node should be enabled
+  useEffect(() => {
+    // Find the last fill-form node in the nodes array
+    const fillFormNodes = nodes.filter(node => node.type === 'fill-form');
+    const lastFillFormNode = fillFormNodes[fillFormNodes.length - 1];
+    
+    setLatestFillFormNode(lastFillFormNode || null);
+    
+    // Condition node is enabled only if there's at least one fill-form node
+    setIsConditionDisabled(!lastFillFormNode);
+    
+    // Update condition nodes to reference the latest fill-form
+    if (lastFillFormNode) {
+      const updatedNodes = nodes.map(node => {
+        if (node.type === 'condition' && node.data.selectedFormId !== lastFillFormNode.data.form?.id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              selectedFormId: lastFillFormNode.data.form?.id || null,
+              selectedForm: lastFillFormNode.data.form || null,
+              conditionRules: node.data.conditionRules || []
+            }
+          };
+        }
+        return node;
+      });
+      
+      if (JSON.stringify(updatedNodes) !== JSON.stringify(nodes)) {
+        setNodes(updatedNodes);
+      }
+    }
+  }, [nodes]);
+
   // Handle connections
   const onConnect = useCallback(
     (params) => {
       const sourceNode = nodes.find((node) => node.id === params.source);
 
-      // Prevent multiple outgoing connections from non-decision/condition nodes
-      if (sourceNode?.type !== "condition") {
+      // Validate condition node connections
+      if (sourceNode?.type === 'condition') {
+        const conditionIndex = params.sourceHandle?.replace('condition-', '');
+        if (!conditionIndex || !sourceNode.data.conditionRules[conditionIndex]) {
+          console.warn(`Invalid condition handle: ${params.sourceHandle}`);
+          return;
+        }
+      }
+
+      // Prevent multiple outgoing connections from non-condition nodes
+      if (sourceNode?.type !== 'condition') {
         const existingOutgoingEdges = edges.filter(
-          (edge) => edge.source === params.source,
+          (edge) => edge.source === params.source
         );
         if (existingOutgoingEdges.length > 0) {
           console.warn(
-            "Only decision node can have multiple outgoing connections",
+            'Only condition nodes can have multiple outgoing connections'
           );
           return;
         }
@@ -112,15 +158,15 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
             id: `${params.source}-${params.sourceHandle}-${
               params.target
             }-${Date.now()}`,
-            type: "step",
+            type: 'step',
             animated: true,
-            style: { stroke: "#3b82f6" },
+            style: { stroke: '#3b82f6' },
           },
-          eds,
-        ),
+          eds
+        )
       );
     },
-    [nodes, edges],
+    [nodes, edges]
   );
 
   // Handle node click
@@ -129,123 +175,100 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
   }, []);
 
   // Update node data
-  const onNodeUpdate = useCallback((nodeId, newData) => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              ...newData,
-              conditions:
-                newData.conditions?.filter((c) => c && c.trim() !== "") || [],
-            },
-          };
-        }
-        return node;
-      }),
-    );
-
-    // Handle edge management for decision nodes
-    if (newData.type === "decision") {
-      setEdges((eds) => {
-        const otherEdges = eds.filter((edge) => edge.source !== nodeId);
-        const newConditions =
-          newData.conditions?.filter((c) => c && c.trim() !== "") || [];
-        const validEdges = eds.filter(
-          (edge) =>
-            edge.source === nodeId && newConditions.includes(edge.sourceHandle),
-        );
-        const newEdges = newConditions
-          .filter(
-            (condition) =>
-              !validEdges.some((edge) => edge.sourceHandle === condition),
-          )
-          .map((condition, index) => ({
-            id: `${nodeId}-${condition}-${index}`,
-            source: nodeId,
-            target: null,
-            sourceHandle: condition,
-            type: "step",
-            animated: true,
-            style: { stroke: "#3b82f6" },
-          }));
-        return [...otherEdges, ...validEdges, ...newEdges];
-      });
-    }
-  }, []);
-
-  // Add new node
-  const addNode = useCallback(
-    (type) => {
-      const { x, y, zoom } = reactFlowInstance.getViewport();
-      const centerX = -x + window.innerWidth / 2 / zoom + 200;
-      const centerY = -y + window.innerHeight / 2 / zoom;
-
-      const defaultData = {
-        label: "",
-        description: "",
-      };
-
-      switch (type) {
-        case "start":
-          defaultData.label = "شروع";
-          defaultData.description = "نقطه شروع فرآیند";
-          break;
-        case "assign-task":
-          defaultData.label = "تخصیص وظیفه";
-          defaultData.description = "واگذاری کار به نقش مشخص";
-          defaultData.role = null;
-          defaultData.form = null;
-          break;
-        case "fill-form":
-          defaultData.label = "تکمیل فرم";
-          defaultData.description = "تکمیل فرم توسط کاربر";
-          defaultData.form = null;
-          break;
-        case "condition":
-          defaultData.label = "شرط";
-          defaultData.description = "بررسی شرط بر اساس فرم‌های قبلی";
-          defaultData.conditionRules = [];
-          break;
-        case "change-status": // Add this case
-          defaultData.label = "تغییر وضعیت";
-          defaultData.description = "تغییر وضعیت وظیفه";
-          defaultData.status = "";
-          defaultData.statusLabel = "";
-          defaultData.statusColor = "#3b82f6";
-          defaultData.assignToRole = null;
-          defaultData.shouldReassign = false;
-          break;
-        case "end":
-          defaultData.label = "پایان";
-          defaultData.description = "پایان فرآیند";
-          break;
-      }
-
-      const newNode = {
-        id: uuidv4(),
-        type,
-        position: {
-          x: centerX,
-          y: centerY,
-        },
-        data: defaultData,
-      };
-
-      setNodes((nds) => [...nds, newNode]);
+  const onNodeUpdate = useCallback(
+    (nodeId, newData) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === nodeId) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                ...newData,
+              },
+            };
+          }
+          return node;
+        })
+      );
     },
-    [reactFlowInstance],
+    []
   );
 
+  // Add new node
+  const addNode = useCallback((type) => {
+    const { x, y, zoom } = reactFlowInstance.getViewport();
+    const centerX = -x + (window.innerWidth / 2 / zoom) + 200;
+    const centerY = -y + window.innerHeight / 2 / zoom;
+
+    const defaultData = {
+      label: '',
+      description: '',
+    };
+
+    switch (type) {
+      case 'start':
+        defaultData.label = 'شروع';
+        defaultData.description = 'نقطه شروع فرآیند';
+        break;
+      case 'assign-task':
+        defaultData.label = 'تخصیص وظیفه';
+        defaultData.description = 'واگذاری کار به نقش مشخص';
+        defaultData.role = null;
+        defaultData.form = null;
+        break;
+      case 'fill-form':
+        defaultData.label = 'تکمیل فرم';
+        defaultData.description = 'تکمیل فرم توسط کاربر';
+        defaultData.form = null;
+        break;
+      case 'condition':
+        // If there's a latest fill-form node, use its form
+        const formToUse = latestFillFormNode?.data?.form || null;
+        defaultData.label = 'شرط';
+        defaultData.description = 'بررسی شرط بر اساس فرم‌های قبلی';
+        defaultData.selectedFormId = formToUse?.id || null;
+        defaultData.selectedForm = formToUse;
+        defaultData.conditionRules = [];
+        break;
+      case 'change-status':
+        defaultData.label = 'تغییر وضعیت';
+        defaultData.description = 'تغییر وضعیت وظیفه';
+        defaultData.status = '';
+        defaultData.statusLabel = '';
+        defaultData.statusColor = '#3b82f6';
+        defaultData.assignToRole = null;
+        defaultData.shouldReassign = false;
+        break;
+      case 'end':
+        defaultData.label = 'پایان';
+        defaultData.description = 'پایان فرآیند';
+        break;
+    }
+
+    const newNode = {
+      id: uuidv4(),
+      type,
+      position: {
+        x: centerX,
+        y: centerY,
+      },
+      data: defaultData,
+    };
+
+    setNodes((nds) => [...nds, newNode]);
+  }, [reactFlowInstance, latestFillFormNode]);
+
   // Delete node
-  const deleteNode = useCallback((nodeId) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) =>
-      eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
-    );
-  }, []);
+  const deleteNode = useCallback(
+    (nodeId) => {
+      setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+      setEdges((eds) =>
+        eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
+      );
+    },
+    []
+  );
 
   // Clear selection
   const onPaneClick = useCallback(() => {
@@ -255,26 +278,28 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
   // Handle keyboard delete
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === "Delete" && selectedNode) {
+      if (event.key === 'Delete' && selectedNode) {
         deleteNode(selectedNode.id);
         setSelectedNode(null);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedNode, deleteNode]);
 
   return (
     <div
       className={`w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden ${
-        fullscreen ? "fixed inset-0 z-50 bg-background" : "relative h-[600px]"
+        fullscreen ? 'fixed inset-0 z-50 bg-background' : 'relative h-[600px]'
       }`}
     >
       <WorkflowEditorSidebar
         addNode={addNode}
         fullscreen={fullscreen}
         setFullscreen={setFullscreen}
+        isConditionDisabled={isConditionDisabled}
+        latestFillFormNode={latestFillFormNode}
       />
 
       <ReactFlow
@@ -288,6 +313,11 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
         nodeTypes={nodeTypes}
         fitView
         proOptions={{ hideAttribution: true }}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          animated: true,
+        }}
+        connectionLineType="smoothstep"
       >
         <Controls />
         <MiniMap />
@@ -300,6 +330,7 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
           onUpdate={onNodeUpdate}
           onClose={() => setSelectedNode(null)}
           onDelete={deleteNode}
+          latestFillFormNode={latestFillFormNode}
         />
       )}
     </div>
@@ -308,14 +339,11 @@ const WorkflowEditorContent = ({ onChange, workflowData = null }) => {
 
 const WorkflowEditor = ({ onChange, workflowData = null }) => {
   // Memoize the onChange handler to prevent unnecessary re-renders
-  const handleChange = useCallback(
-    (data) => {
-      if (onChange) {
-        onChange(data);
-      }
-    },
-    [onChange],
-  );
+  const handleChange = useCallback((data) => {
+    if (onChange) {
+      onChange(data);
+    }
+  }, [onChange]);
 
   return (
     <ReactFlowProvider>

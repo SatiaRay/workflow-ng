@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, FileText } from "lucide-react"; // Added FileText import
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,31 +7,21 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { FormService } from "@/services/supabase/form-services";
 import { RoleService } from "@/services/supabase/role-service";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 
-const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
+const NodeDetails = ({
+  node,
+  onUpdate,
+  onClose,
+  onDelete,
+  latestFillFormNode,
+}) => {
+  // Added latestFillFormNode prop
   const [label, setLabel] = useState(node.data.label || "");
   const [description, setDescription] = useState(node.data.description || "");
 
@@ -41,26 +31,9 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
   const [availableRoles, setAvailableRoles] = useState([]);
   const [availableForms, setAvailableForms] = useState([]);
 
-  // For change-status node
-  const [statusLabel, setStatusLabel] = useState(node.data.statusLabel || "");
-  const [statusValue, setStatusValue] = useState(node.data.status || "");
-  const [statusColor, setStatusColor] = useState(
-    node.data.statusColor || "#3b82f6",
-  );
-  const [assignToRole, setAssignToRole] = useState(
-    node.data.assignToRole || null,
-  );
-  const [shouldReassign, setShouldReassign] = useState(
-    node.data.shouldReassign || false,
-  );
-  const [openRoleDropdown, setOpenRoleDropdown] = useState(false);
-
   // For condition node
   const [conditionRules, setConditionRules] = useState(
     node.data.conditionRules || [],
-  );
-  const [availableFormsForCondition, setAvailableFormsForCondition] = useState(
-    [],
   );
   const [formFields, setFormFields] = useState({}); // { formId: [fields] }
 
@@ -69,57 +42,47 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
     const loadData = async () => {
       const formService = new FormService();
 
-      if (
-        node.type === "assign-task" ||
-        node.type === "fill-form" ||
-        node.type === "change-status"
-      ) {
+      if (node.type === "assign-task" || node.type === "fill-form") {
         const forms = await formService.getForms();
         setAvailableForms(forms);
 
-        if (node.type === "assign-task" || node.type === "change-status") {
+        if (node.type === "assign-task") {
           const roleService = new RoleService();
           const roles = await roleService.getRoles();
           setAvailableRoles(roles);
         }
       }
 
-      // Load available forms for condition node
+      // For condition node, load fields for the selected form
       if (node.type === "condition") {
-        const forms = await formService.getForms();
-        setAvailableFormsForCondition(forms);
+        const selectedFormId =
+          node.data.selectedFormId || latestFillFormNode?.data?.form?.id;
 
-        // Load fields for each form
-        const fieldsMap = {};
-        for (const form of forms) {
+        if (selectedFormId) {
           try {
-            const schema =
-              typeof form.schema === "string"
-                ? JSON.parse(form.schema)
-                : form.schema;
-            fieldsMap[form.id] = schema?.fields || [];
-          } catch (error) {
-            fieldsMap[form.id] = [];
-          }
-        }
-        setFormFields(fieldsMap);
+            const formService = new FormService();
+            const form = await formService.getFormById(selectedFormId);
 
-        // Initialize condition rules from existing data
-        if (node.data.conditionRules) {
-          setConditionRules(
-            node.data.conditionRules.map((rule) => ({
-              ...rule,
-              selectedFormId: rule.formId || null,
-              selectedField: rule.field || "",
-              fieldType: rule.fieldType || "text",
-            })),
-          );
+            if (form && form.schema) {
+              const schema =
+                typeof form.schema === "string"
+                  ? JSON.parse(form.schema)
+                  : form.schema;
+
+              setFormFields({
+                [selectedFormId]: schema?.fields || [],
+              });
+            }
+          } catch (error) {
+            console.error("Error loading form fields:", error);
+            setFormFields({});
+          }
         }
       }
     };
 
     loadData();
-  }, [node.type, node.data.conditionRules]);
+  }, [node.type, node.data.selectedFormId, latestFillFormNode]);
 
   const handleSave = () => {
     const updates = {
@@ -135,6 +98,49 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
       case "fill-form":
         updates.form = selectedForm?.id === "none" ? null : selectedForm;
         break;
+      case "condition":
+        // Important: Make sure we're saving ALL condition rules, not just filtered ones
+        // But filter out incomplete rules
+        const validConditionRules = conditionRules
+          .filter(
+            (rule) =>
+              rule.selectedField &&
+              rule.selectedField !== "none" &&
+              rule.operator &&
+              rule.operator !== "none" &&
+              ([
+                "is_empty",
+                "is_not_empty",
+                "is_empty",
+                "is_not_empty",
+              ].includes(rule.operator) ||
+                rule.value !== undefined),
+          )
+          .map((rule) => {
+            const fieldInfo = getFieldById(
+              node.data.selectedFormId,
+              rule.selectedField,
+            );
+
+            return {
+              fieldId: rule.selectedField,
+              fieldLabel: fieldInfo?.label || "",
+              fieldType: rule.fieldType || "text",
+              operator: rule.operator,
+              value: rule.value || "",
+              // Store additional info for display
+              _fieldInfo: fieldInfo,
+            };
+          });
+
+        console.log("Saving condition rules:", {
+          originalCount: conditionRules.length,
+          validCount: validConditionRules.length,
+          rules: validConditionRules,
+        });
+
+        updates.conditionRules = validConditionRules;
+        break;
       case "change-status":
         updates.status = statusValue || statusLabel;
         updates.statusLabel = statusLabel;
@@ -142,67 +148,54 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
         updates.assignToRole = assignToRole;
         updates.shouldReassign = shouldReassign;
         break;
-      case "condition":
-        // Filter out invalid rules and format them properly
-        updates.conditionRules = conditionRules
-          .filter(
-            (rule) =>
-              rule.selectedFormId &&
-              rule.selectedField &&
-              rule.selectedField !== "none" &&
-              rule.operator &&
-              rule.operator !== "none" &&
-              (["is_empty", "is_not_empty"].includes(rule.operator) ||
-                rule.value !== undefined),
-          )
-          .map((rule) => ({
-            formId: rule.selectedFormId,
-            field: rule.selectedField,
-            operator: rule.operator,
-            value: rule.value || "",
-            fieldType: rule.fieldType || "text",
-          }));
-        break;
     }
 
+    console.log("Final updates to save:", updates);
     onUpdate(node.id, updates);
     onClose();
   };
 
-  // Condition node functions
   const addConditionRule = () => {
     const newRule = {
-      selectedFormId: null,
       selectedField: "none",
       operator: "none",
       value: "",
       fieldType: "text",
+      fieldInfo: null,
     };
     setConditionRules([...conditionRules, newRule]);
   };
 
   const updateConditionRule = (index, field, value) => {
     const newRules = [...conditionRules];
-    const updatedRule = {
-      ...newRules[index],
-      [field]: value,
-      // Reset dependent fields when form changes
-      ...(field === "selectedFormId" &&
-        value !== "none" && {
-          selectedField: "none",
-          operator: "none",
-          value: "",
-          fieldType: "text",
-        }),
-      // Reset operator when field changes
-      ...(field === "selectedField" &&
-        value !== "none" && {
-          operator: "none",
-          value: "",
-          fieldType: getFieldType(newRules[index].selectedFormId, value),
-        }),
-    };
-    newRules[index] = updatedRule;
+
+    if (field === "selectedField" && value !== "none") {
+      const selectedField = getFieldById(node.data.selectedFormId, value);
+      const fieldType = selectedField?.type || "text";
+
+      // Normalize options if they exist
+      const fieldInfo = selectedField
+        ? {
+            ...selectedField,
+            options: normalizeOptions(selectedField.options),
+          }
+        : null;
+
+      newRules[index] = {
+        ...newRules[index],
+        [field]: value,
+        fieldType: fieldType,
+        operator: "none", // Reset operator when field changes
+        value: "", // Reset value when field changes
+        fieldInfo: fieldInfo,
+      };
+    } else {
+      newRules[index] = {
+        ...newRules[index],
+        [field]: value,
+      };
+    }
+
     setConditionRules(newRules);
   };
 
@@ -211,74 +204,220 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
     setConditionRules(newRules);
   };
 
-  const getAvailableOperators = (fieldType) => {
-    const operators = [
+  const getOperatorsForFieldType = (fieldType) => {
+    const baseOperators = [
       { value: "equals", label: "برابر با" },
       { value: "not_equals", label: "مخالف با" },
-      { value: "contains", label: "شامل" },
-      { value: "not_contains", label: "شامل نباشد" },
-      { value: "greater_than", label: "بزرگتر از" },
-      { value: "less_than", label: "کوچکتر از" },
       { value: "is_empty", label: "خالی باشد" },
       { value: "is_not_empty", label: "خالی نباشد" },
     ];
 
-    if (fieldType === "number") {
-      return operators.filter((op) =>
-        [
-          "equals",
-          "not_equals",
-          "greater_than",
-          "less_than",
-          "is_empty",
-          "is_not_empty",
-        ].includes(op.value),
-      );
-    }
+    const textOperators = [
+      { value: "contains", label: "شامل" },
+      { value: "not_contains", label: "شامل نباشد" },
+      { value: "starts_with", label: "شروع شود با" },
+      { value: "ends_with", label: "پایان یابد با" },
+    ];
 
-    if (fieldType === "text" || fieldType === "textarea") {
-      return operators.filter((op) =>
-        [
-          "equals",
-          "not_equals",
-          "contains",
-          "not_contains",
-          "is_empty",
-          "is_not_empty",
-        ].includes(op.value),
-      );
-    }
+    const numberOperators = [
+      { value: "greater_than", label: "بزرگتر از" },
+      { value: "greater_than_or_equals", label: "بزرگتر یا مساوی با" },
+      { value: "less_than", label: "کوچکتر از" },
+      { value: "less_than_or_equals", label: "کوچکتر یا مساوی با" },
+    ];
 
-    if (
-      fieldType === "select" ||
-      fieldType === "radio" ||
-      fieldType === "checkbox"
-    ) {
-      return operators.filter((op) =>
-        ["equals", "not_equals", "is_empty", "is_not_empty"].includes(op.value),
-      );
-    }
+    const dateOperators = [
+      { value: "before", label: "قبل از" },
+      { value: "after", label: "بعد از" },
+      { value: "on", label: "در تاریخ" },
+      { value: "not_on", label: "غیر از تاریخ" },
+    ];
 
-    return operators;
+    const selectOperators = [
+      { value: "in", label: "شامل یکی از" },
+      { value: "not_in", label: "شامل هیچ یک از" },
+    ];
+
+    // Map field types to operator sets
+    const operatorMap = {
+      // Text-based fields
+      text: [...baseOperators, ...textOperators],
+      textarea: [...baseOperators, ...textOperators],
+      email: [...baseOperators, ...textOperators],
+
+      // Number-based fields
+      number: [...baseOperators, ...numberOperators],
+
+      // Date-based fields
+      date: [...baseOperators, ...dateOperators],
+
+      // Selection-based fields
+      select: [...baseOperators, ...selectOperators],
+      radio: [...baseOperators, ...selectOperators],
+      checkbox: [...baseOperators, ...selectOperators],
+
+      // Relation fields
+      relation: [...baseOperators, ...selectOperators],
+
+      // Default for unknown types
+      default: baseOperators,
+    };
+
+    return operatorMap[fieldType] || operatorMap.default;
   };
 
   const getSelectedFormFields = (formId) => {
     if (!formId) return [];
     const fields = formFields[formId] || [];
-    console.log(fields);
-
     return fields;
   };
 
-  const getFieldType = (formId, fieldName) => {
-    if (!formId || !fieldName || fieldName === "none") {
-      return "text";
+  const normalizeOptions = (options) => {
+    if (!options || !Array.isArray(options)) {
+      return [];
+    }
+
+    return options.map((option) => {
+      if (typeof option === "string") {
+        return { value: option, label: option };
+      }
+      if (typeof option === "object" && option.value !== undefined) {
+        return option;
+      }
+      // If it's an object without value, use the whole object as string
+      return { value: JSON.stringify(option), label: JSON.stringify(option) };
+    });
+  };
+
+  const getFieldById = (formId, fieldId) => {
+    if (!formId || !fieldId || fieldId === "none") {
+      return null;
     }
 
     const fields = getSelectedFormFields(formId);
-    const field = fields.find((f) => f.name === fieldName);
-    return field?.type || "text";
+    const field = fields.find((f) => f.id.toString() === fieldId);
+
+    if (!field) return null;
+
+    return {
+      ...field,
+      options: normalizeOptions(field.options),
+    };
   };
+
+  const getValueInputLabel = (operator, fieldType) => {
+    if (["in", "not_in"].includes(operator)) {
+      return "مقادیر (با کاما جدا کنید)";
+    }
+
+    if (fieldType === "date") {
+      return "تاریخ (YYYY-MM-DD)";
+    }
+
+    if (fieldType === "number") {
+      return "عدد";
+    }
+
+    return "مقدار";
+  };
+
+  const renderValueInput = (rule, index) => {
+    const fieldType = rule.fieldType || "text";
+
+    // For select/radio/checkbox with options
+    if (
+      ["select", "radio", "checkbox"].includes(fieldType) &&
+      rule.fieldInfo?.options
+    ) {
+      const options = rule.fieldInfo.options;
+
+      // Handle both string arrays and object arrays
+      const normalizedOptions = Array.isArray(options)
+        ? options.map((option) => {
+            if (typeof option === "string") {
+              return { value: option, label: option };
+            }
+            return option;
+          })
+        : [];
+
+      return (
+        <Select
+          value={rule.value || ""}
+          onValueChange={(value) => {
+            updateConditionRule(index, "value", value);
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="انتخاب گزینه" />
+          </SelectTrigger>
+          <SelectContent>
+            {normalizedOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+    }
+
+    // For date fields
+    if (fieldType === "date") {
+      return (
+        <Input
+          type="date"
+          value={rule.value || ""}
+          onChange={(e) => {
+            updateConditionRule(index, "value", e.target.value);
+          }}
+          placeholder="YYYY-MM-DD"
+        />
+      );
+    }
+
+    // For number fields
+    if (fieldType === "number") {
+      return (
+        <Input
+          type="number"
+          value={rule.value || ""}
+          onChange={(e) => {
+            updateConditionRule(index, "value", e.target.value);
+          }}
+          placeholder="عدد"
+        />
+      );
+    }
+
+    // For text fields (default)
+    return (
+      <Input
+        value={rule.value || ""}
+        onChange={(e) => {
+          updateConditionRule(index, "value", e.target.value);
+        }}
+        placeholder={
+          ["in", "not_in"].includes(rule.operator)
+            ? "value1,value2,value3"
+            : "مقدار شرط"
+        }
+      />
+    );
+  };
+
+  // For change-status node (add these state variables at the top)
+  const [statusLabel, setStatusLabel] = useState(node.data.statusLabel || "");
+  const [statusValue, setStatusValue] = useState(node.data.status || "");
+  const [statusColor, setStatusColor] = useState(
+    node.data.statusColor || "#3b82f6",
+  );
+  const [assignToRole, setAssignToRole] = useState(
+    node.data.assignToRole || null,
+  );
+  const [shouldReassign, setShouldReassign] = useState(
+    node.data.shouldReassign || false,
+  );
 
   return (
     <div className="absolute right-4 top-4 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 max-h-[80vh] overflow-y-auto">
@@ -293,7 +432,9 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                   ? "تخصیص وظیفه"
                   : node.type === "fill-form"
                     ? "تکمیل فرم"
-                    : "شرط"}
+                    : node.type === "change-status"
+                      ? "تغییر وضعیت"
+                      : "شرط"}
           </h3>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -391,6 +532,25 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
           {/* Condition Node Fields */}
           {node.type === "condition" && (
             <div>
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                <div className="text-sm text-blue-800 dark:text-blue-200 flex items-center">
+                  <FileText className="w-4 h-4 ml-2" />
+                  <div>
+                    <div className="font-medium">فرم مرتبط:</div>
+                    <div>
+                      {node.data.selectedForm?.title || "فرم انتخاب نشده"}
+                    </div>
+                    {latestFillFormNode && (
+                      <div className="text-xs opacity-75 mt-1">
+                        این شرط بر اساس فرم "
+                        {latestFillFormNode.data.form?.title || "آخرین فرم"}"
+                        تعریف می‌شود.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <Label className="mb-2 block">شرط‌ها</Label>
               <div className="space-y-3">
                 {conditionRules.map((rule, index) => {
@@ -416,46 +576,8 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                         </Button>
                       </div>
 
-                      {/* Step 1: Select Form */}
-                      <div>
-                        <Label className="text-xs mb-1 block">فرم</Label>
-                        <Select
-                          value={rule.selectedFormId?.toString() || "none"}
-                          onValueChange={(value) => {
-                            if (value === "none") {
-                              updateConditionRule(
-                                index,
-                                "selectedFormId",
-                                null,
-                              );
-                            } else {
-                              updateConditionRule(
-                                index,
-                                "selectedFormId",
-                                parseInt(value),
-                              );
-                            }
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="انتخاب فرم" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">انتخاب فرم</SelectItem>
-                            {availableFormsForCondition.map((form) => (
-                              <SelectItem
-                                key={form.id}
-                                value={form.id.toString()}
-                              >
-                                {form.title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Step 2: Select Field from chosen form */}
-                      {rule.selectedFormId && (
+                      {/* Step 1: Select Field from the latest form */}
+                      {node.data.selectedFormId && (
                         <div>
                           <Label className="text-xs mb-1 block">فیلد</Label>
                           <Select
@@ -472,35 +594,28 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                               <SelectValue placeholder="انتخاب فیلد" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectGroup>
-                                <SelectItem value="none">
-                                  انتخاب فیلد
-                                </SelectItem>
-                                {getSelectedFormFields(rule.selectedFormId).map(
-                                  (field) => {
-                                    return (
-                                      <SelectItem
-                                        key={field.id}
-                                        value={field.id}
-                                      >
-                                        {field.label}
-                                        {field.type && (
-                                          <span className="text-xs text-gray-500 mr-2">
-                                            {" "}
-                                            ({field.type})
-                                          </span>
-                                        )}
-                                      </SelectItem>
-                                    );
-                                  },
-                                )}
-                              </SelectGroup>
+                              <SelectItem value="none">انتخاب فیلد</SelectItem>
+                              {getSelectedFormFields(
+                                node.data.selectedFormId,
+                              ).map((field) => {
+                                return (
+                                  <SelectItem key={field.id} value={field.id}>
+                                    {field.label}
+                                    {field.type && (
+                                      <span className="text-xs text-gray-500 mr-2">
+                                        {" "}
+                                        ({field.type})
+                                      </span>
+                                    )}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                         </div>
                       )}
 
-                      {/* Step 3: Select Operator */}
+                      {/* Step 2: Select Operator */}
                       {rule.selectedField && rule.selectedField !== "none" && (
                         <div>
                           <Label className="text-xs mb-1 block">عملگر</Label>
@@ -515,7 +630,7 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">انتخاب عملگر</SelectItem>
-                              {getAvailableOperators(
+                              {getOperatorsForFieldType(
                                 rule.fieldType || "text",
                               ).map((operator) => (
                                 <SelectItem
@@ -530,24 +645,21 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                         </div>
                       )}
 
-                      {/* Step 4: Enter Value (if applicable) */}
+                      {/* Step 3: Enter Value (if applicable) */}
                       {rule.operator &&
                         rule.operator !== "none" &&
-                        rule.operator !== "is_empty" &&
-                        rule.operator !== "is_not_empty" && (
+                        !["is_empty", "is_not_empty"].includes(
+                          rule.operator,
+                        ) && (
                           <div>
-                            <Label className="text-xs mb-1 block">مقدار</Label>
-                            <Input
-                              value={rule.value || ""}
-                              onChange={(e) => {
-                                updateConditionRule(
-                                  index,
-                                  "value",
-                                  e.target.value,
-                                );
-                              }}
-                              placeholder="مقدار شرط"
-                            />
+                            <Label className="text-xs mb-1 block">
+                              {getValueInputLabel(
+                                rule.operator,
+                                rule.fieldType,
+                              )}
+                            </Label>
+
+                            {renderValueInput(rule, index)}
                           </div>
                         )}
                     </div>
@@ -562,6 +674,7 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                     addConditionRule();
                   }}
                   className="w-full"
+                  disabled={!node.data.selectedFormId}
                 >
                   <Plus className="w-4 h-4 ml-1" />
                   افزودن شرط جدید
@@ -570,7 +683,7 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
             </div>
           )}
 
-          {/* Change Status Node Fields */}
+          {/* Change Status Node Fields - Add this section */}
           {node.type === "change-status" && (
             <div className="space-y-4">
               <div>
@@ -647,103 +760,6 @@ const NodeDetails = ({ node, onUpdate, onClose, onDelete }) => {
                       onClick={() => setStatusColor(color)}
                     />
                   ))}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <Label htmlFor="should-reassign" className="cursor-pointer">
-                    واگذاری مجدد به نقش دیگر
-                  </Label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    در صورت فعال بودن، پس از تغییر وضعیت، وظیفه به نقش جدید
-                    واگذار می‌شود
-                  </p>
-                </div>
-                <Switch
-                  id="should-reassign"
-                  checked={shouldReassign}
-                  onCheckedChange={setShouldReassign}
-                />
-              </div>
-
-              {shouldReassign && (
-                <div>
-                  <Label>واگذاری به نقش</Label>
-                  <Popover
-                    open={openRoleDropdown}
-                    onOpenChange={setOpenRoleDropdown}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openRoleDropdown}
-                        className="w-full justify-between"
-                      >
-                        {assignToRole ? assignToRole.name : "انتخاب نقش..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="جستجوی نقش..." />
-                        <CommandList>
-                          <CommandEmpty>نقشی یافت نشد</CommandEmpty>
-                          <CommandGroup>
-                            {availableRoles.map((role) => (
-                              <CommandItem
-                                key={role.id}
-                                value={role.name}
-                                onSelect={() => {
-                                  setAssignToRole(role);
-                                  setOpenRoleDropdown(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "ml-2 h-4 w-4",
-                                    assignToRole?.id === role.id
-                                      ? "opacity-100"
-                                      : "opacity-0",
-                                  )}
-                                />
-                                {role.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAssignToRole(null)}
-                    className="mt-2"
-                    disabled={!assignToRole}
-                  >
-                    حذف انتخاب نقش
-                  </Button>
-                </div>
-              )}
-
-              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <div className="text-xs font-medium mb-2">پیش‌نمایش وضعیت:</div>
-                <div className="flex items-center">
-                  <div
-                    className="w-4 h-4 rounded-full mr-2"
-                    style={{ backgroundColor: statusColor }}
-                  ></div>
-                  <span className="text-sm">
-                    {statusLabel || "برچسب وضعیت"}
-                  </span>
-                  {statusValue && (
-                    <span className="text-xs text-gray-500 mr-2 font-mono">
-                      ({statusValue})
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
