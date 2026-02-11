@@ -476,7 +476,7 @@ export default function WorkflowsIndex() {
                               </DropdownMenuItem>
 
                               <DropdownMenuItem
-                                onClick={() => navigate(`/workflows/edit/${workflow.id}`)}
+                                onClick={() => navigate(`/workflows/${workflow.id}/edit`)}
                               >
                                 <Edit className="w-4 h-4 ml-2" />
                                 ویرایش
