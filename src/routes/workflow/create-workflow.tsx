@@ -177,7 +177,6 @@ export default function CreateWorkflow() {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
-  // Handle final submission
   const handleSubmit = async () => {
     // Final validation
     if (!validateStep1()) {
@@ -243,16 +242,16 @@ export default function CreateWorkflow() {
     }
   };
 
-  // Get node statistics
   const getNodeStats = () => {
     const stats = {
       total: formData.schema.nodes.length,
       start: formData.schema.nodes.filter((n: any) => n.type === "start")
         .length,
-      process: formData.schema.nodes.filter((n: any) => n.type === "process")
+      assign: formData.schema.nodes.filter((n: any) => n.type === "assign-task")
         .length,
-      decision: formData.schema.nodes.filter((n: any) => n.type === "decision")
-        .length,
+      fillform: formData.schema.nodes.filter((n: any) => n.type === "fill-form"),
+      condition: formData.schema.nodes.filter((n: any) => n.type === "condition"),
+      changeStatus: formData.schema.nodes.filter((n: any) => n.type === "change-status"),
       end: formData.schema.nodes.filter((n: any) => n.type === "end").length,
       connections: formData.schema.edges.length,
     };
@@ -514,7 +513,7 @@ export default function CreateWorkflow() {
               </CardHeader>
               <CardContent className="px-5">
                 <div className="h-[600px] min-h-[600px]">
-                  <WorkflowEditor onChange={handleWorkflowChange} />
+                  <WorkflowEditor onChange={handleWorkflowChange} workflowData={formData?.schema} />
                 </div>
               </CardContent>
             </Card>
