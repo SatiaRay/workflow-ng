@@ -78,6 +78,32 @@ export class WorkflowService extends BaseSupabaseService {
     }
   }
 
+  async getWorkflow(id: number): Promise<Workflow | null> {
+  try {
+    const { data, error } = await this.supabase
+      .from('workflows')
+      .select(`
+        *,
+        form:forms!inner (
+          id,
+          title
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching workflow:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getWorkflow:', error);
+    throw error;
+  }
+}
+
   async getWorkflowStats(): Promise<WorkflowStats> {
     try {
       // Get total counts

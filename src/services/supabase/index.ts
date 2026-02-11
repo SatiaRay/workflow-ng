@@ -40,6 +40,7 @@ export class SupabaseService {
   updateRole = roleService.updateRole.bind(roleService);
 
   getWorkflows = workflowService.getWorkflows.bind(workflowService);
+  getWorkflow = workflowService.getWorkflow.bind(workflowService);
   getWorkflowStats = workflowService.getWorkflowStats.bind(workflowService);
   createWorkflow = workflowService.createWorkflow.bind(workflowService);
   updateWorkflow = workflowService.updateWorkflow.bind(workflowService);
