@@ -351,6 +351,7 @@ export default function TaskDetail() {
       setFormData(resetData);
 
       toast.success("فرم با موفقیت ارسال شد!");
+      navigate('/tasks')
     } catch (error: any) {
       console.error("Error submitting form:", error);
       toast.error(`ارسال فرم ناموفق بود: ${error.message}`);
