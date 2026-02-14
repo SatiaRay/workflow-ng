@@ -32,10 +32,40 @@ const NodeDetails = ({
   const [availableForms, setAvailableForms] = useState([]);
 
   // For condition node
-  const [conditionRules, setConditionRules] = useState(
-    node.data.conditionRules || [],
-  );
+  const [conditionRules, setConditionRules] = useState([]);
   const [formFields, setFormFields] = useState({}); // { formId: [fields] }
+  const [selectedFormId, setSelectedFormId] = useState(
+    node.data.selectedFormId || latestFillFormNode?.data?.form?.id || null
+  );
+  const [selectedFormData, setSelectedFormData] = useState(
+    node.data.selectedForm || latestFillFormNode?.data?.form || null
+  );
+
+  // Initialize condition rules from saved data
+  useEffect(() => {
+    if (node.type === "condition" && node.data.conditionRules) {
+      // Transform saved rules to component format
+      const transformedRules = node.data.conditionRules.map((rule) => ({
+        selectedField: rule.fieldId || "none",
+        operator: rule.operator || "none",
+        value: rule.value || "",
+        fieldType: rule.fieldType || "text",
+        fieldInfo: null, // Will be populated when fields are loaded
+      }));
+      setConditionRules(transformedRules);
+    } else if (node.type === "condition") {
+      // Initialize with empty rule if no saved rules
+      setConditionRules([
+        {
+          selectedField: "none",
+          operator: "none",
+          value: "",
+          fieldType: "text",
+          fieldInfo: null,
+        },
+      ]);
+    }
+  }, [node.type, node.data.conditionRules]);
 
   // Load data based on node type
   useEffect(() => {
@@ -55,13 +85,12 @@ const NodeDetails = ({
 
       // For condition node, load fields for the selected form
       if (node.type === "condition") {
-        const selectedFormId =
-          node.data.selectedFormId || latestFillFormNode?.data?.form?.id;
+        const formIdToUse = selectedFormId;
 
-        if (selectedFormId) {
+        if (formIdToUse) {
           try {
             const formService = new FormService();
-            const form = await formService.getFormById(selectedFormId);
+            const form = await formService.getFormById(formIdToUse);
 
             if (form && form.schema) {
               const schema =
@@ -69,9 +98,34 @@ const NodeDetails = ({
                   ? JSON.parse(form.schema)
                   : form.schema;
 
+              const fields = schema?.fields || [];
+              
               setFormFields({
-                [selectedFormId]: schema?.fields || [],
+                [formIdToUse]: fields,
               });
+
+              // Update fieldInfo for existing rules
+              if (conditionRules.length > 0) {
+                const updatedRules = conditionRules.map((rule) => {
+                  if (rule.selectedField && rule.selectedField !== "none") {
+                    const field = fields.find(
+                      (f) => f.id.toString() === rule.selectedField
+                    );
+                    if (field) {
+                      return {
+                        ...rule,
+                        fieldType: field.type || "text",
+                        fieldInfo: {
+                          ...field,
+                          options: normalizeOptions(field.options),
+                        },
+                      };
+                    }
+                  }
+                  return rule;
+                });
+                setConditionRules(updatedRules);
+              }
             }
           } catch (error) {
             console.error("Error loading form fields:", error);
@@ -82,7 +136,7 @@ const NodeDetails = ({
     };
 
     loadData();
-  }, [node.type, node.data.selectedFormId, latestFillFormNode]);
+  }, [node.type, selectedFormId, latestFillFormNode]);
 
   const handleSave = () => {
     const updates = {
@@ -99,8 +153,11 @@ const NodeDetails = ({
         updates.form = selectedForm?.id === "none" ? null : selectedForm;
         break;
       case "condition":
-        // Important: Make sure we're saving ALL condition rules, not just filtered ones
-        // But filter out incomplete rules
+        // Save selected form info
+        updates.selectedFormId = selectedFormId;
+        updates.selectedForm = selectedFormData;
+
+        // Filter out invalid rules and format them properly
         const validConditionRules = conditionRules
           .filter(
             (rule) =>
@@ -108,19 +165,11 @@ const NodeDetails = ({
               rule.selectedField !== "none" &&
               rule.operator &&
               rule.operator !== "none" &&
-              ([
-                "is_empty",
-                "is_not_empty",
-                "is_empty",
-                "is_not_empty",
-              ].includes(rule.operator) ||
+              (["is_empty", "is_not_empty"].includes(rule.operator) ||
                 rule.value !== undefined),
           )
           .map((rule) => {
-            const fieldInfo = getFieldById(
-              node.data.selectedFormId,
-              rule.selectedField,
-            );
+            const fieldInfo = getFieldById(selectedFormId, rule.selectedField);
 
             return {
               fieldId: rule.selectedField,
@@ -128,8 +177,6 @@ const NodeDetails = ({
               fieldType: rule.fieldType || "text",
               operator: rule.operator,
               value: rule.value || "",
-              // Store additional info for display
-              _fieldInfo: fieldInfo,
             };
           });
 
@@ -170,7 +217,7 @@ const NodeDetails = ({
     const newRules = [...conditionRules];
 
     if (field === "selectedField" && value !== "none") {
-      const selectedField = getFieldById(node.data.selectedFormId, value);
+      const selectedField = getFieldById(selectedFormId, value);
       const fieldType = selectedField?.type || "text";
 
       // Normalize options if they exist
@@ -538,7 +585,7 @@ const NodeDetails = ({
                   <div>
                     <div className="font-medium">فرم مرتبط:</div>
                     <div>
-                      {node.data.selectedForm?.title || "فرم انتخاب نشده"}
+                      {selectedFormData?.title || "فرم انتخاب نشده"}
                     </div>
                     {latestFillFormNode && (
                       <div className="text-xs opacity-75 mt-1">
@@ -577,7 +624,7 @@ const NodeDetails = ({
                       </div>
 
                       {/* Step 1: Select Field from the latest form */}
-                      {node.data.selectedFormId && (
+                      {selectedFormId && (
                         <div>
                           <Label className="text-xs mb-1 block">فیلد</Label>
                           <Select
@@ -596,10 +643,10 @@ const NodeDetails = ({
                             <SelectContent>
                               <SelectItem value="none">انتخاب فیلد</SelectItem>
                               {getSelectedFormFields(
-                                node.data.selectedFormId,
+                                selectedFormId,
                               ).map((field) => {
                                 return (
-                                  <SelectItem key={field.id} value={field.id}>
+                                  <SelectItem key={field.id} value={field.id.toString()}>
                                     {field.label}
                                     {field.type && (
                                       <span className="text-xs text-gray-500 mr-2">
@@ -674,7 +721,7 @@ const NodeDetails = ({
                     addConditionRule();
                   }}
                   className="w-full"
-                  disabled={!node.data.selectedFormId}
+                  disabled={!selectedFormId}
                 >
                   <Plus className="w-4 h-4 ml-1" />
                   افزودن شرط جدید
