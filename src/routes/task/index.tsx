@@ -55,16 +55,12 @@ import { supabaseService } from "@/services/supabase.service";
 interface Task {
   id: number;
   step: {
-    id: string;
-    type: string;
-    label: string;
+    step_id: string;
+    step_name: string;
     form_id?: number;
-    role_id?: number;
   };
   assigned_to: string | null;
-  created_by: string | null;
   status: any;
-  form_id: number | null;
   task_data: any;
   due_date: string | null;
   completed_at: string | null;
@@ -73,15 +69,12 @@ interface Task {
   updated_at: string;
 
   // Joined fields
-  form?: {
-    id: number;
-    title: string;
-  };
   responses?: Array<{
     id: number;
     data: any;
     created_at: string;
     created_by: string;
+    form_id?: number;
   }>;
 }
 
@@ -166,18 +159,20 @@ export default function TaskIndex() {
         assignedTasks = await supabaseService.tasks.getTasksByAssignee(
           user.id,
           1,
-          100, // Get more for merging
+          1000,
           filters
         );
+        console.log("Assigned tasks:", assignedTasks.data);
       }
 
       if (filters.type === "all" || filters.type === "submitted") {
         submittedTasks = await supabaseService.tasks.getTasksBySubmitter(
           user.id,
           1,
-          100, // Get more for merging
+          1000,
           filters
         );
+        console.log("Submitted tasks:", submittedTasks.data);
       }
 
       // Merge and deduplicate tasks
@@ -185,6 +180,15 @@ export default function TaskIndex() {
       const uniqueTasks = Array.from(
         new Map(allTasks.map(task => [task.id, task])).values()
       );
+
+      console.log("Unique tasks with responses:", uniqueTasks.map(t => ({
+        id: t.id,
+        responses: t.responses?.map(r => ({
+          id: r.id,
+          created_by: r.created_by,
+          created_at: r.created_at
+        }))
+      })));
 
       // Sort by created_at descending
       const sortedTasks = uniqueTasks.sort((a, b) => 
@@ -280,34 +284,6 @@ export default function TaskIndex() {
     );
   };
 
-  const getTaskTypeBadge = (task: Task) => {
-    const isAssigned = task.assigned_to === user?.id;
-    const isCreated = task.created_by === user?.id;
-
-    if (isAssigned && isCreated) {
-      return (
-        <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
-          <ArrowUpDown className="h-3 w-3 ml-1" />
-          واگذار شده و ثبت شده
-        </Badge>
-      );
-    } else if (isAssigned) {
-      return (
-        <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-          <Inbox className="h-3 w-3 ml-1" />
-          واگذار شده به من
-        </Badge>
-      );
-    } else if (isCreated) {
-      return (
-        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-          <Send className="h-3 w-3 ml-1" />
-          ثبت شده توسط من
-        </Badge>
-      );
-    }
-    return null;
-  };
 
   const getStepTypeBadge = (type: string) => {
     const typeConfig: Record<string, { label: string; color: string }> = {
@@ -332,6 +308,17 @@ export default function TaskIndex() {
     if (!userId) return "سیستم";
     const profile = users.find((u) => u.id === userId);
     return profile?.name || profile?.full_name || profile?.email || userId;
+  };
+
+  const getTaskCreator = (task: Task): string => {
+    // Creator is the user who submitted the first response (trigger form)
+    if (task.responses && task.responses.length > 0) {
+      // Responses are already sorted by created_at from the service
+      console.log(`Task ${task.id} first response creator:`, task.responses[0].created_by);
+      return task.responses[0].created_by;
+    }
+    console.log(`Task ${task.id} has no responses, creator is system`);
+    return "سیستم";
   };
 
   const getInitials = (name: string) => {
@@ -412,7 +399,7 @@ export default function TaskIndex() {
                   <SelectContent>
                     <SelectItem value="all">همه وظایف</SelectItem>
                     <SelectItem value="assigned">واگذار شده به من</SelectItem>
-                    <SelectItem value="submitted">ثبت شده توسط من</SelectItem>
+                    <SelectItem value="submitted">مشارکت کرده‌ام</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -521,6 +508,8 @@ export default function TaskIndex() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {tasks.map((task, index) => {
               const isAssigned = task.assigned_to === user?.id;
+              const hasUserResponse = task.responses?.some(r => r.created_by === user?.id);
+              const taskCreator = getTaskCreator(task);
               
               return (
                 <Card
@@ -536,11 +525,10 @@ export default function TaskIndex() {
                         </div>
                         <div className="space-y-1">
                           <CardTitle className="text-base line-clamp-1">
-                            {task.step?.label || 'بدون عنوان'}
+                            {task.step?.step_name || 'بدون عنوان'}
                           </CardTitle>
                           <div className="flex items-center gap-1 flex-wrap">
-                            {getStepTypeBadge(task.step?.type)}
-                            {getTaskTypeBadge(task)}
+                            {getStepTypeBadge(task.step?.step_name)}
                           </div>
                         </div>
                       </div>
@@ -597,11 +585,11 @@ export default function TaskIndex() {
                       )}
 
                       {/* Form Info */}
-                      {task.form && (
+                      {task.step?.form_id && (
                         <div className="flex items-center gap-2 text-sm">
                           <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="text-sm truncate">
-                            {task.form.title}
+                            فرم: {task.step.form_id}
                           </span>
                         </div>
                       )}
@@ -614,22 +602,22 @@ export default function TaskIndex() {
                         </div>
                       )}
 
-                      {/* Assignee/Creator Info */}
+                      {/* Creator/Assignee Info */}
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6">
                           <AvatarFallback className="text-xs">
                             {isAssigned
-                              ? getInitials(getUserName(task.created_by))
+                              ? getInitials(getUserName(taskCreator))
                               : getInitials(getUserName(task.assigned_to))}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
                           <span className="text-xs text-muted-foreground">
-                            {isAssigned ? "ثبت شده توسط" : "واگذار شده به"}
+                            {isAssigned ? "ایجاد شده توسط" : "واگذار شده به"}
                           </span>
                           <span className="text-sm font-medium line-clamp-1">
                             {isAssigned
-                              ? getUserName(task.created_by)
+                              ? getUserName(taskCreator)
                               : getUserName(task.assigned_to)}
                           </span>
                         </div>
@@ -698,7 +686,7 @@ export default function TaskIndex() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">کارتابل وظایف</h1>
           <p className="text-muted-foreground">
-            مدیریت و پیگیری تمام وظایف (واگذار شده و ثبت شده)
+            مدیریت و پیگیری تمام وظایف (واگذار شده و مشارکت شده)
           </p>
         </div>
 

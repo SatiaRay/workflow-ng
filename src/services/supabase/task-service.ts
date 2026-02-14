@@ -3,10 +3,15 @@ import type { PaginatedResponse } from './types';
 
 export interface Task {
   id: number;
-  step: any; // JSONB field
+  step: {
+    step_id: string;
+    step_name: string;
+    form_id?: number;
+    [key: string]: any;
+  };
   assigned_to: string | null;
-  status: any; // JSONB field
-  task_data: any; // JSONB field
+  status: any;
+  task_data: any;
   due_date: string | null;
   completed_at: string | null;
   notes: string | null;
@@ -19,12 +24,14 @@ export interface Task {
     data: any;
     created_at: string;
     created_by: string;
+    form_id?: number;
   }>;
 }
 
 export interface TaskFilters {
   status?: string;
   search?: string;
+  formId?: string;
   dateFrom?: string;
   dateTo?: string;
   type?: 'all' | 'assigned' | 'submitted';
@@ -45,7 +52,8 @@ export class TaskService extends BaseSupabaseService {
               id,
               data,
               created_at,
-              created_by
+              created_by,
+              form_id
             )
           )
         `)
@@ -75,9 +83,14 @@ export class TaskService extends BaseSupabaseService {
         ?.map((tr: any) => tr.response)
         .filter((r: any) => r !== null) || [];
 
+      // Sort responses by created_at to ensure first response is the trigger
+      const sortedResponses = [...responses].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
       return {
         ...data,
-        responses,
+        responses: sortedResponses,
         task_responses: undefined
       };
     } catch (error) {
@@ -87,7 +100,7 @@ export class TaskService extends BaseSupabaseService {
   }
 
   /**
-   * Get tasks assigned to a specific user
+   * Get tasks assigned to a specific user with their responses
    */
   async getTasksByAssignee(
     userId: string,
@@ -108,7 +121,8 @@ export class TaskService extends BaseSupabaseService {
               id,
               data,
               created_at,
-              created_by
+              created_by,
+              form_id
             )
           )
         `, { count: 'exact' })
@@ -121,7 +135,7 @@ export class TaskService extends BaseSupabaseService {
       }
 
       if (filters?.search) {
-        query = query.or(`step->>label.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
+        query = query.or(`step->>step_name.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
       }
 
       if (filters?.dateFrom) {
@@ -157,9 +171,14 @@ export class TaskService extends BaseSupabaseService {
           ?.map((tr: any) => tr.response)
           .filter((r: any) => r !== null) || [];
 
+        // Sort responses by created_at
+        const sortedResponses = [...responses].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+
         return {
           ...task,
-          responses,
+          responses: sortedResponses,
           task_responses: undefined
         };
       });
@@ -178,9 +197,7 @@ export class TaskService extends BaseSupabaseService {
   }
 
   /**
-   * Get tasks submitted by a user (tasks they created)
-   * Note: The tasks table doesn't have created_by column!
-   * We need to join with responses to find tasks where user submitted responses
+   * Get tasks where user has submitted responses
    */
   async getTasksBySubmitter(
     userId: string,
@@ -198,7 +215,11 @@ export class TaskService extends BaseSupabaseService {
         .select(`
           task_id,
           response:responses!inner (
-            created_by
+            id,
+            data,
+            created_at,
+            created_by,
+            form_id
           )
         `)
         .eq('response.created_by', userId);
@@ -220,7 +241,7 @@ export class TaskService extends BaseSupabaseService {
         };
       }
 
-      // Now fetch the tasks with these IDs
+      // Now fetch the tasks with these IDs and their responses
       let query = this.supabase
         .from('tasks')
         .select(`
@@ -230,7 +251,8 @@ export class TaskService extends BaseSupabaseService {
               id,
               data,
               created_at,
-              created_by
+              created_by,
+              form_id
             )
           )
         `, { count: 'exact' })
@@ -243,7 +265,7 @@ export class TaskService extends BaseSupabaseService {
       }
 
       if (filters?.search) {
-        query = query.or(`step->>label.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
+        query = query.or(`step->>step_name.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
       }
 
       if (filters?.dateFrom) {
@@ -279,9 +301,14 @@ export class TaskService extends BaseSupabaseService {
           ?.map((tr: any) => tr.response)
           .filter((r: any) => r !== null) || [];
 
+        // Sort responses by created_at
+        const sortedResponses = [...responses].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+
         return {
           ...task,
-          responses,
+          responses: sortedResponses,
           task_responses: undefined
         };
       });
@@ -295,60 +322,6 @@ export class TaskService extends BaseSupabaseService {
       };
     } catch (error) {
       console.error('Error in getTasksBySubmitter:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get a single task by ID
-   */
-  async getTaskById(taskId: number): Promise<Task | null> {
-    try {
-      const { data, error } = await this.supabase
-        .from('tasks')
-        .select(`
-          *,
-          task_responses!left (
-            response:responses!inner (
-              id,
-              data,
-              created_at,
-              created_by
-            )
-          )
-        `)
-        .eq('id', taskId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching task:', error);
-        return null;
-      }
-
-      if (!data) return null;
-
-      // Parse JSON fields
-      if (typeof data.step === 'string') {
-        try { data.step = JSON.parse(data.step); } catch (e) {}
-      }
-      if (typeof data.status === 'string') {
-        try { data.status = JSON.parse(data.status); } catch (e) {}
-      }
-      if (typeof data.task_data === 'string') {
-        try { data.task_data = JSON.parse(data.task_data); } catch (e) {}
-      }
-
-      const responses = data.task_responses
-        ?.map((tr: any) => tr.response)
-        .filter((r: any) => r !== null) || [];
-
-      return {
-        ...data,
-        responses,
-        task_responses: undefined
-      };
-    } catch (error) {
-      console.error('Error in getTaskById:', error);
       throw error;
     }
   }
@@ -395,28 +368,61 @@ export class TaskService extends BaseSupabaseService {
   }
 
   /**
-   * Update task details
+   * Get a single task by ID
    */
-  async updateTask(taskId: number, updates: Partial<Task>): Promise<Task> {
+  async getTaskById(taskId: number): Promise<Task | null> {
     try {
       const { data, error } = await this.supabase
         .from('tasks')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .select(`
+          *,
+          task_responses!left (
+            response:responses!inner (
+              id,
+              data,
+              created_at,
+              created_by,
+              form_id
+            )
+          )
+        `)
         .eq('id', taskId)
-        .select()
         .single();
 
       if (error) {
-        console.error('Error updating task:', error);
-        throw error;
+        console.error('Error fetching task:', error);
+        return null;
       }
 
-      return data;
+      if (!data) return null;
+
+      // Parse JSON fields
+      if (typeof data.step === 'string') {
+        try { data.step = JSON.parse(data.step); } catch (e) {}
+      }
+      if (typeof data.status === 'string') {
+        try { data.status = JSON.parse(data.status); } catch (e) {}
+      }
+      if (typeof data.task_data === 'string') {
+        try { data.task_data = JSON.parse(data.task_data); } catch (e) {}
+      }
+
+      const responses = data.task_responses
+        ?.map((tr: any) => tr.response)
+        .filter((r: any) => r !== null) || [];
+
+      // Sort responses by created_at
+      const sortedResponses = [...responses].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      return {
+        ...data,
+        responses: sortedResponses,
+        task_responses: undefined
+      };
     } catch (error) {
-      console.error('Error in updateTask:', error);
+      console.error('Error in getTaskById:', error);
       throw error;
     }
   }
@@ -425,7 +431,27 @@ export class TaskService extends BaseSupabaseService {
    * Add note to task
    */
   async addTaskNote(taskId: number, note: string): Promise<Task> {
-    return this.updateTask(taskId, { notes: note });
+    try {
+      const { data, error } = await this.supabase
+        .from('tasks')
+        .update({
+          notes: note,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding task note:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in addTaskNote:', error);
+      throw error;
+    }
   }
 
   /**
@@ -506,7 +532,7 @@ export class TaskService extends BaseSupabaseService {
       const assignedResponse = await this.getTasksByAssignee(
         userId,
         1,
-        1000, // Get a large number to merge
+        1000,
         filters
       );
 
@@ -543,82 +569,6 @@ export class TaskService extends BaseSupabaseService {
       };
     } catch (error) {
       console.error('Error in getAllUserTasks:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get task statistics for a user
-   */
-  async getTaskStats(userId: string): Promise<{
-    assigned: {
-      total: number;
-      pending: number;
-      in_progress: number;
-      completed: number;
-      on_hold: number;
-    };
-    submitted: {
-      total: number;
-      pending: number;
-      in_progress: number;
-      completed: number;
-      on_hold: number;
-    };
-  }> {
-    try {
-      // Get assigned tasks stats
-      const { data: assignedData, error: assignedError } = await this.supabase
-        .from('tasks')
-        .select('status')
-        .eq('assigned_to', userId);
-      
-      if (assignedError) throw assignedError;
-
-      // Get submitted tasks stats through task_responses
-      const { data: taskResponseData, error: taskResponseError } = await this.supabase
-        .from('task_responses')
-        .select(`
-          task_id,
-          response:responses!inner (
-            created_by
-          )
-        `)
-        .eq('response.created_by', userId);
-
-      if (taskResponseError) throw taskResponseError;
-
-      const taskIds = taskResponseData?.map(tr => tr.task_id) || [];
-      
-      let submittedData: any[] = [];
-      if (taskIds.length > 0) {
-        const { data, error } = await this.supabase
-          .from('tasks')
-          .select('status')
-          .in('id', taskIds);
-        
-        if (!error) submittedData = data || [];
-      }
-
-      const extractStatus = (status: any): string => {
-        if (typeof status === 'string') return status;
-        return status?.status || 'pending';
-      };
-
-      const calculateStats = (tasks: any[]) => ({
-        total: tasks.length,
-        pending: tasks.filter(t => extractStatus(t.status) === 'pending').length,
-        in_progress: tasks.filter(t => extractStatus(t.status) === 'in_progress').length,
-        completed: tasks.filter(t => extractStatus(t.status) === 'completed').length,
-        on_hold: tasks.filter(t => extractStatus(t.status) === 'on_hold').length,
-      });
-
-      return {
-        assigned: calculateStats(assignedData || []),
-        submitted: calculateStats(submittedData || [])
-      };
-    } catch (error) {
-      console.error('Error in getTaskStats:', error);
       throw error;
     }
   }

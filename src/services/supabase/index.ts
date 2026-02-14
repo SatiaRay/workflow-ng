@@ -57,11 +57,9 @@ export class SupabaseService {
   getTasksBySubmitter = taskService.getTasksBySubmitter.bind(taskService);
   getTaskById = taskService.getTaskById.bind(taskService);
   updateTaskStatus = taskService.updateTaskStatus.bind(taskService);
-  updateTask = taskService.updateTask.bind(taskService);
   addTaskNote = taskService.addTaskNote.bind(taskService);
   createTask = taskService.createTask.bind(taskService);
   createTaskResponse = taskService.createTaskResponse.bind(taskService);
-  getTaskStats = taskService.getTaskStats.bind(taskService);
 }
 
 // Default export for backward compatibility
