@@ -20,12 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -52,6 +46,7 @@ import {
   ChevronRight,
   RefreshCw,
   AlertCircle,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
@@ -68,7 +63,7 @@ interface Task {
   };
   assigned_to: string | null;
   created_by: string | null;
-  status: any; // Dynamic status object from database
+  status: any;
   form_id: number | null;
   task_data: any;
   due_date: string | null;
@@ -103,13 +98,13 @@ interface TaskFilters {
   formId: string;
   dateFrom: string;
   dateTo: string;
+  type: "all" | "assigned" | "submitted";
 }
 
 export default function TaskIndex() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState("assigned");
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -128,6 +123,7 @@ export default function TaskIndex() {
     formId: "all",
     dateFrom: "",
     dateTo: "",
+    type: "all",
   });
 
   // Load initial data
@@ -135,12 +131,12 @@ export default function TaskIndex() {
     loadInitialData();
   }, []);
 
-  // Load tasks when tab or pagination changes
+  // Load tasks when pagination or filters change
   useEffect(() => {
     if (user) {
       loadTasks();
     }
-  }, [activeTab, pagination.page, filters, user]);
+  }, [pagination.page, filters, user]);
 
   const loadInitialData = async () => {
     try {
@@ -162,30 +158,50 @@ export default function TaskIndex() {
 
     setLoading(true);
     try {
-      let response;
+      let assignedTasks = { data: [], total: 0 };
+      let submittedTasks = { data: [], total: 0 };
 
-      if (activeTab === "assigned") {
-        response = await supabaseService.tasks.getTasksByAssignee(
+      // Load tasks based on type filter
+      if (filters.type === "all" || filters.type === "assigned") {
+        assignedTasks = await supabaseService.tasks.getTasksByAssignee(
           user.id,
-          pagination.page,
-          pagination.pageSize,
-          filters
-        );
-      } else {
-        response = await supabaseService.tasks.getTasksBySubmitter(
-          user.id,
-          pagination.page,
-          pagination.pageSize,
+          1,
+          100, // Get more for merging
           filters
         );
       }
 
-      setTasks(response.data);
+      if (filters.type === "all" || filters.type === "submitted") {
+        submittedTasks = await supabaseService.tasks.getTasksBySubmitter(
+          user.id,
+          1,
+          100, // Get more for merging
+          filters
+        );
+      }
+
+      // Merge and deduplicate tasks
+      const allTasks = [...assignedTasks.data, ...submittedTasks.data];
+      const uniqueTasks = Array.from(
+        new Map(allTasks.map(task => [task.id, task])).values()
+      );
+
+      // Sort by created_at descending
+      const sortedTasks = uniqueTasks.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      // Apply pagination manually
+      const start = (pagination.page - 1) * pagination.pageSize;
+      const end = start + pagination.pageSize;
+      const paginatedTasks = sortedTasks.slice(start, end);
+
+      setTasks(paginatedTasks);
       setPagination({
-        page: response.page,
-        pageSize: response.pageSize,
-        total: response.total,
-        totalPages: response.totalPages,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        total: sortedTasks.length,
+        totalPages: Math.ceil(sortedTasks.length / pagination.pageSize),
       });
     } catch (error) {
       console.error("Error loading tasks:", error);
@@ -199,7 +215,6 @@ export default function TaskIndex() {
     try {
       await supabaseService.tasks.updateTaskStatus(taskId, newStatus);
 
-      // Update local state - preserve status object structure
       setTasks(tasks.map(task => 
         task.id === taskId 
           ? { 
@@ -207,7 +222,6 @@ export default function TaskIndex() {
               status: {
                 ...(typeof task.status === 'object' ? task.status : {}),
                 status: newStatus,
-                ...(newStatus === "completed" && { completed_at: new Date().toISOString() })
               },
               updated_at: new Date().toISOString(),
               ...(newStatus === "completed" && { completed_at: new Date().toISOString() })
@@ -233,15 +247,14 @@ export default function TaskIndex() {
       formId: "all",
       dateFrom: "",
       dateTo: "",
+      type: "all",
     });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  // Get status badge directly from the status object
   const getStatusBadge = (status: any) => {
     if (!status) return null;
     
-    // If it's a string (fallback), use default styling
     if (typeof status === 'string') {
       return (
         <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
@@ -250,9 +263,7 @@ export default function TaskIndex() {
       );
     }
 
-    // Use the status object directly from the database
     const backgroundColor = status.color || status.statusColor || '#6b7280';
-    // Ensure text is readable on colored background
     const textColor = '#fff';
     
     return (
@@ -267,6 +278,35 @@ export default function TaskIndex() {
         {status.label || status.statusLabel || status.status || 'وضعیت'}
       </Badge>
     );
+  };
+
+  const getTaskTypeBadge = (task: Task) => {
+    const isAssigned = task.assigned_to === user?.id;
+    const isCreated = task.created_by === user?.id;
+
+    if (isAssigned && isCreated) {
+      return (
+        <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+          <ArrowUpDown className="h-3 w-3 ml-1" />
+          واگذار شده و ثبت شده
+        </Badge>
+      );
+    } else if (isAssigned) {
+      return (
+        <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+          <Inbox className="h-3 w-3 ml-1" />
+          واگذار شده به من
+        </Badge>
+      );
+    } else if (isCreated) {
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+          <Send className="h-3 w-3 ml-1" />
+          ثبت شده توسط من
+        </Badge>
+      );
+    }
+    return null;
   };
 
   const getStepTypeBadge = (type: string) => {
@@ -292,18 +332,6 @@ export default function TaskIndex() {
     if (!userId) return "سیستم";
     const profile = users.find((u) => u.id === userId);
     return profile?.name || profile?.full_name || profile?.email || userId;
-  };
-
-  const getCreatorName = (userId: string | null) => {
-    if (!userId) return "سیستم";
-    const creator = users.find((u) => u.id === userId);
-    return creator?.name || creator?.full_name || creator?.email || userId;
-  };
-
-  const getAssigneeName = (userId: string | null) => {
-    if (!userId) return "واگذار نشده";
-    const assignee = users.find((u) => u.id === userId);
-    return assignee?.name || assignee?.full_name || assignee?.email || userId;
   };
 
   const getInitials = (name: string) => {
@@ -349,7 +377,7 @@ export default function TaskIndex() {
               >
                 <Filter className="h-4 w-4" />
               </Button>
-              {(filters.status !== "all" || filters.formId !== "all" || filters.dateFrom || filters.dateTo) && (
+              {(filters.status !== "all" || filters.formId !== "all" || filters.dateFrom || filters.dateTo || filters.type !== "all") && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -371,7 +399,24 @@ export default function TaskIndex() {
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 pt-4 border-t">
+              <div>
+                <Label className="text-xs">نوع وظیفه</Label>
+                <Select
+                  value={filters.type}
+                  onValueChange={(value: any) => setFilters(prev => ({ ...prev, type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="همه وظایف" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">همه وظایف</SelectItem>
+                    <SelectItem value="assigned">واگذار شده به من</SelectItem>
+                    <SelectItem value="submitted">ثبت شده توسط من</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <Label className="text-xs">وضعیت</Label>
                 <Select
@@ -387,9 +432,6 @@ export default function TaskIndex() {
                     <SelectItem value="in_progress">در حال انجام</SelectItem>
                     <SelectItem value="completed">تکمیل شده</SelectItem>
                     <SelectItem value="on_hold">متوقف شده</SelectItem>
-                    <SelectItem value="waiting">در انتظار تایید</SelectItem>
-                    <SelectItem value="approved">تایید شده</SelectItem>
-                    <SelectItem value="rejected">رد شده</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -464,162 +506,155 @@ export default function TaskIndex() {
         <Card className="w-full">
           <CardContent className="p-12">
             <div className="flex flex-col items-center justify-center text-muted-foreground">
-              {activeTab === "assigned" ? (
-                <>
-                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <Inbox className="h-10 w-10" />
-                  </div>
-                  <h3 className="text-xl font-medium mb-2">وظیفه‌ای وجود ندارد</h3>
-                  <p className="text-sm text-center text-muted-foreground">
-                    وظیفه‌ای به شما واگذار نشده است
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <Send className="h-10 w-10" />
-                  </div>
-                  <h3 className="text-xl font-medium mb-2">وظیفه‌ای وجود ندارد</h3>
-                  <p className="text-sm text-center text-muted-foreground">
-                    هیچ وظیفه‌ای ثبت نکرده‌اید
-                  </p>
-                </>
-              )}
+              <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                <Inbox className="h-10 w-10" />
+              </div>
+              <h3 className="text-xl font-medium mb-2">وظیفه‌ای وجود ندارد</h3>
+              <p className="text-sm text-center text-muted-foreground">
+                هیچ وظیفه‌ای برای نمایش وجود ندارد
+              </p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tasks.map((task, index) => (
-              <Card
-                key={task.id}
-                className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
-                onClick={() => handleTaskClick(task)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+            {tasks.map((task, index) => {
+              const isAssigned = task.assigned_to === user?.id;
+              
+              return (
+                <Card
+                  key={task.id}
+                  className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col h-full"
+                  onClick={() => handleTaskClick(task)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                          {(pagination.page - 1) * pagination.pageSize + index + 1}
+                        </div>
+                        <div className="space-y-1">
+                          <CardTitle className="text-base line-clamp-1">
+                            {task.step?.label || 'بدون عنوان'}
+                          </CardTitle>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {getStepTypeBadge(task.step?.type)}
+                            {getTaskTypeBadge(task)}
+                          </div>
+                        </div>
+                      </div>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>عملیات</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleTaskClick(task)}>
+                              <Eye className="h-4 w-4 ml-2" />
+                              مشاهده جزئیات
+                            </DropdownMenuItem>
+                            {isAssigned && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>تغییر وضعیت</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => handleStatusChange(task.id, "in_progress")}
+                                >
+                                  <Loader2 className="h-4 w-4 ml-2 text-blue-500" />
+                                  شروع انجام
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleStatusChange(task.id, "completed")}
+                                >
+                                  <CheckCircle2 className="h-4 w-4 ml-2 text-green-500" />
+                                  تکمیل
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleStatusChange(task.id, "on_hold")}
+                                >
+                                  <Clock className="h-4 w-4 ml-2 text-orange-500" />
+                                  توقف موقت
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="pb-4 flex-1">
+                    <div className="space-y-3">
+                      {/* Task Summary */}
+                      {task.task_data?.summary && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {task.task_data.summary}
+                        </p>
+                      )}
+
+                      {/* Form Info */}
+                      {task.form && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm truncate">
+                            {task.form.title}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Response Count */}
+                      {task.responses && task.responses.length > 0 && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>{task.responses.length} پاسخ</span>
+                        </div>
+                      )}
+
+                      {/* Assignee/Creator Info */}
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">
+                            {isAssigned
+                              ? getInitials(getUserName(task.created_by))
+                              : getInitials(getUserName(task.assigned_to))}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">
+                            {isAssigned ? "ثبت شده توسط" : "واگذار شده به"}
+                          </span>
+                          <span className="text-sm font-medium line-clamp-1">
+                            {isAssigned
+                              ? getUserName(task.created_by)
+                              : getUserName(task.assigned_to)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="border-t pt-4 flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(task.created_at)}
+                    </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                        {(pagination.page - 1) * pagination.pageSize + index + 1}
-                      </div>
-                      <div className="space-y-1">
-                        <CardTitle className="text-base line-clamp-1">
-                          {task.step?.label || 'بدون عنوان'}
-                        </CardTitle>
-                        {getStepTypeBadge(task.step?.type)}
-                      </div>
+                      {getStatusBadge(task.status)}
+                      {task.due_date && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(task.due_date)}
+                        </div>
+                      )}
                     </div>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel>عملیات</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleTaskClick(task)}>
-                            <Eye className="h-4 w-4 ml-2" />
-                            مشاهده جزئیات
-                          </DropdownMenuItem>
-                          {activeTab === "assigned" && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuLabel>تغییر وضعیت</DropdownMenuLabel>
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange(task.id, "in_progress")}
-                              >
-                                <Loader2 className="h-4 w-4 ml-2 text-blue-500" />
-                                شروع انجام
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange(task.id, "completed")}
-                              >
-                                <CheckCircle2 className="h-4 w-4 ml-2 text-green-500" />
-                                تکمیل
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange(task.id, "on_hold")}
-                              >
-                                <Clock className="h-4 w-4 ml-2 text-orange-500" />
-                                توقف موقت
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pb-4 flex-1">
-                  <div className="space-y-3">
-                    {/* Task Summary */}
-                    {task.task_data?.summary && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {task.task_data.summary}
-                      </p>
-                    )}
-
-                    {/* Form Info */}
-                    {task.form && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm truncate">
-                          {task.form.title}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Response Count */}
-                    {task.responses && task.responses.length > 0 && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <CheckCircle2 className="h-3 w-3" />
-                        <span>{task.responses.length} پاسخ</span>
-                      </div>
-                    )}
-
-                    {/* Assignee/Creator Info */}
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">
-                          {activeTab === "assigned"
-                            ? getInitials(getCreatorName(task.created_by))
-                            : getInitials(getAssigneeName(task.assigned_to))}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground">
-                          {activeTab === "assigned" ? "واگذار شده توسط" : "واگذار شده به"}
-                        </span>
-                        <span className="text-sm font-medium line-clamp-1">
-                          {activeTab === "assigned"
-                            ? getCreatorName(task.created_by)
-                            : getAssigneeName(task.assigned_to)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="border-t pt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    {formatDate(task.created_at)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(task.status)}
-                    {task.due_date && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {formatDate(task.due_date)}
-                      </div>
-                    )}
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -663,31 +698,14 @@ export default function TaskIndex() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">کارتابل وظایف</h1>
           <p className="text-muted-foreground">
-            مدیریت و پیگیری وظایف واگذار شده و ثبت شده
+            مدیریت و پیگیری تمام وظایف (واگذار شده و ثبت شده)
           </p>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir="rtl">
-          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
-            <TabsTrigger value="assigned" className="flex items-center gap-2">
-              <Inbox className="h-4 w-4" />
-              وظایف واگذار شده
-            </TabsTrigger>
-            <TabsTrigger value="submitted" className="flex items-center gap-2">
-              <Send className="h-4 w-4" />
-              وظایف ثبت شده
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="assigned" className="space-y-6">
-            {renderTaskGrid()}
-          </TabsContent>
-
-          <TabsContent value="submitted" className="space-y-6">
-            {renderTaskGrid()}
-          </TabsContent>
-        </Tabs>
+        {/* Single Tab View */}
+        <div className="space-y-6">
+          {renderTaskGrid()}
+        </div>
       </div>
     </div>
   );
