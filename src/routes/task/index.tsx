@@ -564,7 +564,7 @@ export default function TaskIndex() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">کارتابل وظایف</h1>
           <p className="text-muted-foreground">
-            مدیریت و پیگیری تمام وظایف (واگذار شده و مشارکت شده)
+            مدیریت و پیگیری تمام وظایف (ارسالی و دریافتی)
           </p>
         </div>
 
