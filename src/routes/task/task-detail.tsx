@@ -65,6 +65,7 @@ interface Task {
     data: any;
     created_at: string;
     created_by: string;
+    form_id?: number; // Add form_id to response
   }>;
 }
 
@@ -90,6 +91,16 @@ interface Form {
   schema: any;
 }
 
+interface ResponseDisplay {
+  responseId: number;
+  formId: number;
+  formTitle: string;
+  data: Record<string, any>;
+  createdAt: string;
+  createdBy: string;
+  fieldMapping: Record<string, FormField>;
+}
+
 export default function TaskDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -101,6 +112,7 @@ export default function TaskDetail() {
   const [task, setTask] = useState<Task | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [responseDisplays, setResponseDisplays] = useState<ResponseDisplay[]>([]);
   const [fieldMapping, setFieldMapping] = useState<Record<string, FormField>>({});
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -130,9 +142,14 @@ export default function TaskDetail() {
 
       setTask(taskData);
 
-      // If it's a fill-form task, load the associated form
+      // If it's a fill-form task, load the associated form for current submission
       if (taskData.step?.step_name === 'fill-form' && taskData.step?.form_id) {
-        await loadForm(taskData.step.form_id);
+        await loadCurrentForm(taskData.step.form_id);
+      }
+
+      // Load forms for all responses
+      if (taskData.responses && taskData.responses.length > 0) {
+        await loadResponseForms(taskData.responses);
       }
 
       // Load users for assignee/creator info
@@ -146,7 +163,7 @@ export default function TaskDetail() {
     }
   };
 
-  const loadForm = async (formId: number) => {
+  const loadCurrentForm = async (formId: number) => {
     try {
       const formData = await supabaseService.forms.getFormById(formId);
       
@@ -189,9 +206,60 @@ export default function TaskDetail() {
       });
       setFormData(initialData);
     } catch (error) {
-      console.error("Error loading form:", error);
-      toast.error("بارگذاری فرم ناموفق بود");
+      console.error("Error loading current form:", error);
+      toast.error("بارگذاری فرم فعلی ناموفق بود");
     }
+  };
+
+  const loadResponseForms = async (responses: Task['responses']) => {
+    if (!responses) return;
+
+    const displays: ResponseDisplay[] = [];
+
+    for (const response of responses) {
+      try {
+        // Get the form_id from the response data or fetch it
+        // Note: You might need to modify your response service to include form_id
+        const responseDetail = await supabaseService.responses.getResponseById(response.id);
+        
+        if (!responseDetail) continue;
+
+        const formId = responseDetail.form_id;
+        if (!formId) continue;
+
+        // Fetch the form schema
+        const formData = await supabaseService.forms.getFormById(formId);
+        
+        if (!formData) continue;
+
+        // Parse form schema and create field mapping
+        const schema =
+          typeof formData.schema === "string"
+            ? JSON.parse(formData.schema)
+            : formData.schema;
+
+        const fields = schema?.fields || [];
+        
+        const mapping: Record<string, FormField> = {};
+        fields.forEach((field: FormField) => {
+          mapping[field.id] = field;
+        });
+
+        displays.push({
+          responseId: response.id,
+          formId: formId,
+          formTitle: formData.title,
+          data: response.data,
+          createdAt: response.created_at,
+          createdBy: response.created_by,
+          fieldMapping: mapping,
+        });
+      } catch (error) {
+        console.error(`Error loading form for response ${response.id}:`, error);
+      }
+    }
+
+    setResponseDisplays(displays);
   };
 
   const handleInputChange = (fieldId: string, value: any) => {
@@ -262,12 +330,8 @@ export default function TaskDetail() {
       // Create relation between task and response
       await supabaseService.tasks.createTaskResponse(task.id, response.id);
 
-      // Update local state
-      const updatedTask = { ...task };
-      updatedTask.responses = [...(task.responses || []), response];
-      updatedTask.updated_at = new Date().toISOString();
-
-      setTask(updatedTask);
+      // Reload task data to show the new response
+      await loadTaskData();
 
       // Reset form
       const resetData: Record<string, any> = {};
@@ -287,8 +351,6 @@ export default function TaskDetail() {
       setFormData(resetData);
 
       toast.success("فرم با موفقیت ارسال شد!");
-
-      navigate('/tasks')
     } catch (error: any) {
       console.error("Error submitting form:", error);
       toast.error(`ارسال فرم ناموفق بود: ${error.message}`);
@@ -439,6 +501,34 @@ export default function TaskDetail() {
     }
   };
 
+  const renderResponseValue = (fieldId: string, value: any, mapping: Record<string, FormField>) => {
+    const field = mapping[fieldId];
+
+    if (value === null || value === undefined) return "-";
+
+    switch (field?.type) {
+      case "date":
+        try {
+          return format(new Date(value), "yyyy/MM/dd");
+        } catch {
+          return value;
+        }
+      case "checkbox":
+        return value ? "بله" : "خیر";
+      case "select":
+      case "radio":
+        if (field.options) {
+          const option = field.options.find(
+            (opt: any) => opt === value
+          );
+          return option || value;
+        }
+        return value;
+      default:
+        return String(value);
+    }
+  };
+
   const getStatusBadge = (status: any) => {
     if (!status) return null;
     
@@ -501,39 +591,6 @@ export default function TaskDetail() {
       return format(new Date(date), "yyyy/MM/dd HH:mm");
     } catch {
       return date;
-    }
-  };
-
-  const getFieldLabel = (fieldId: string): string => {
-    const field = fieldMapping[fieldId];
-    return field?.label || fieldId;
-  };
-
-  const formatFieldValue = (fieldId: string, value: any): string => {
-    const field = fieldMapping[fieldId];
-
-    if (value === null || value === undefined) return "-";
-
-    switch (field?.type) {
-      case "date":
-        try {
-          return format(new Date(value), "yyyy/MM/dd");
-        } catch {
-          return value;
-        }
-      case "checkbox":
-        return value ? "بله" : "خیر";
-      case "select":
-      case "radio":
-        if (field.options) {
-          const option = field.options.find(
-            (opt: any) => opt === value
-          );
-          return option || value;
-        }
-        return value;
-      default:
-        return String(value);
     }
   };
 
@@ -600,7 +657,7 @@ export default function TaskDetail() {
                   <>
                     <span className="mx-2">•</span>
                     <FileText className="h-4 w-4" />
-                    <span>فرم: {task.step.form_id}</span>
+                    <span>فرم فعلی: {task.step.form_id}</span>
                   </>
                 )}
               </div>
@@ -688,8 +745,8 @@ export default function TaskDetail() {
               </CardContent>
             </Card>
 
-            {/* Previous Responses Card - Always show if there are responses */}
-            {task.responses && task.responses.length > 0 && (
+            {/* Previous Responses Card - Show all responses with their own form schemas */}
+            {responseDisplays.length > 0 && (
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -697,28 +754,34 @@ export default function TaskDetail() {
                     <CardTitle>پاسخ‌های قبلی</CardTitle>
                   </div>
                   <CardDescription>
-                    پاسخ‌های ثبت شده قبلی برای این فرم
+                    پاسخ‌های ثبت شده قبلی برای فرم‌های مختلف
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {task.responses.map((response, index) => (
-                    <div key={response.id} className="space-y-4">
+                  {responseDisplays.map((display, index) => (
+                    <div key={display.responseId} className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">
-                          پاسخ {index + 1}
+                        <div>
+                          <div className="text-sm font-medium">
+                            پاسخ {index + 1} - {display.formTitle}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            فرم: {display.formId}
+                          </div>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {formatDateTime(response.created_at)}
+                          {formatDateTime(display.createdAt)}
                         </div>
                       </div>
                       <div className="bg-muted/30 rounded-lg p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {Object.entries(response.data || {}).map(
+                          {Object.entries(display.data || {}).map(
                             ([fieldId, value]) => {
-                              const fieldLabel = getFieldLabel(fieldId);
-                              const formattedValue = formatFieldValue(
+                              const fieldLabel = display.fieldMapping[fieldId]?.label || fieldId;
+                              const formattedValue = renderResponseValue(
                                 fieldId,
                                 value,
+                                display.fieldMapping
                               );
 
                               return (
@@ -736,9 +799,9 @@ export default function TaskDetail() {
                         </div>
                       </div>
                       <div className="flex justify-end text-xs text-muted-foreground">
-                        ثبت شده توسط: {getUserName(response.created_by)}
+                        ثبت شده توسط: {getUserName(display.createdBy)}
                       </div>
-                      {index < (task.responses?.length || 0) - 1 && (
+                      {index < responseDisplays.length - 1 && (
                         <Separator className="my-4" />
                       )}
                     </div>
@@ -751,7 +814,7 @@ export default function TaskDetail() {
             {canFillForm && form && (
               <Card>
                 <CardHeader>
-                  <CardTitle>فرم {form.title}</CardTitle>
+                  <CardTitle>فرم جدید - {form.title}</CardTitle>
                   <CardDescription>
                     لطفاً فرم زیر را تکمیل کنید
                   </CardDescription>
@@ -836,7 +899,7 @@ export default function TaskDetail() {
                 </div>
                 {task.step?.form_id && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">شناسه فرم:</span>
+                    <span className="text-muted-foreground">فرم فعلی:</span>
                     <span className="font-mono text-xs">{task.step.form_id}</span>
                   </div>
                 )}
@@ -852,7 +915,7 @@ export default function TaskDetail() {
             </Card>
 
             {/* Info Card - Shows when no previous responses */}
-            {!task.responses?.length && canFillForm && form && (
+            {responseDisplays.length === 0 && canFillForm && form && (
               <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3">
