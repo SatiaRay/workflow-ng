@@ -45,17 +45,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Task {
   id: number;
   step: {
-    id: string;
-    type: string;
-    label: string;
+    step_id: string;
+    step_name: string;
     form_id?: number;
-    role_id?: number;
     [key: string]: any;
   };
   assigned_to: string | null;
-  created_by: string | null;
-  status: any; // Dynamic status object from database
-  form_id: number | null;
+  status: any;
   task_data: any;
   due_date: string | null;
   completed_at: string | null;
@@ -64,11 +60,6 @@ interface Task {
   updated_at: string;
 
   // Joined fields
-  form?: {
-    id: number;
-    title: string;
-    schema?: any;
-  };
   responses?: Array<{
     id: number;
     data: any;
@@ -93,6 +84,12 @@ interface FormField {
   options?: string[];
 }
 
+interface Form {
+  id: number;
+  title: string;
+  schema: any;
+}
+
 export default function TaskDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -102,6 +99,7 @@ export default function TaskDetail() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [task, setTask] = useState<Task | null>(null);
+  const [form, setForm] = useState<Form | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [fieldMapping, setFieldMapping] = useState<Record<string, FormField>>({});
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -109,8 +107,8 @@ export default function TaskDetail() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isAssignedToMe = task?.assigned_to === user?.id;
-  const isFillFormTask = task?.step?.type === 'fill-form';
-  const canFillForm = isAssignedToMe && isFillFormTask;
+  const isFillFormTask = task?.step?.step_name === 'fill-form';
+  const canFillForm = isAssignedToMe && isFillFormTask && !!form;
 
   useEffect(() => {
     if (taskId) {
@@ -121,6 +119,7 @@ export default function TaskDetail() {
   const loadTaskData = async () => {
     setLoading(true);
     try {
+      // Load task details with responses
       const taskData = await supabaseService.tasks.getTaskWithResponses(taskId);
 
       if (!taskData) {
@@ -131,38 +130,9 @@ export default function TaskDetail() {
 
       setTask(taskData);
 
-      // Parse form schema and create field mapping
-      if (taskData.form?.schema) {
-        const schema =
-          typeof taskData.form.schema === "string"
-            ? JSON.parse(taskData.form.schema)
-            : taskData.form.schema;
-
-        const fields = schema?.fields || [];
-        setFormFields(fields);
-
-        const mapping: Record<string, FormField> = {};
-        fields.forEach((field: FormField) => {
-          mapping[field.id] = field;
-        });
-        setFieldMapping(mapping);
-
-        // Initialize form data
-        const initialData: Record<string, any> = {};
-        fields.forEach((field: FormField) => {
-          switch (field.type) {
-            case "checkbox":
-              initialData[field.id] = false;
-              break;
-            case "select":
-            case "radio":
-              initialData[field.id] = "";
-              break;
-            default:
-              initialData[field.id] = "";
-          }
-        });
-        setFormData(initialData);
+      // If it's a fill-form task, load the associated form
+      if (taskData.step?.step_name === 'fill-form' && taskData.step?.form_id) {
+        await loadForm(taskData.step.form_id);
       }
 
       // Load users for assignee/creator info
@@ -173,6 +143,54 @@ export default function TaskDetail() {
       toast.error("بارگذاری اطلاعات وظیفه ناموفق بود");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadForm = async (formId: number) => {
+    try {
+      const formData = await supabaseService.forms.getFormById(formId);
+      
+      if (!formData) {
+        toast.error("فرم مرتبط با این وظیفه یافت نشد");
+        return;
+      }
+
+      setForm(formData);
+
+      // Parse form schema
+      const schema =
+        typeof formData.schema === "string"
+          ? JSON.parse(formData.schema)
+          : formData.schema;
+
+      const fields = schema?.fields || [];
+      setFormFields(fields);
+
+      const mapping: Record<string, FormField> = {};
+      fields.forEach((field: FormField) => {
+        mapping[field.id] = field;
+      });
+      setFieldMapping(mapping);
+
+      // Initialize form data
+      const initialData: Record<string, any> = {};
+      fields.forEach((field: FormField) => {
+        switch (field.type) {
+          case "checkbox":
+            initialData[field.id] = false;
+            break;
+          case "select":
+          case "radio":
+            initialData[field.id] = "";
+            break;
+          default:
+            initialData[field.id] = "";
+        }
+      });
+      setFormData(initialData);
+    } catch (error) {
+      console.error("Error loading form:", error);
+      toast.error("بارگذاری فرم ناموفق بود");
     }
   };
 
@@ -222,7 +240,7 @@ export default function TaskDetail() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!task || !task.form) return;
+    if (!task || !form) return;
 
     if (!validateForm()) {
       toast.error("لطفاً خطاهای موجود در فرم را برطرف کنید");
@@ -231,15 +249,9 @@ export default function TaskDetail() {
 
     setSubmitting(true);
     try {
-      // Use form_id from step or from task
-      const formId = task.step?.form_id || task.form?.id;
-      
-      if (!formId) {
-        throw new Error("شناسه فرم یافت نشد");
-      }
-
+      // Submit the form response
       const response = await supabaseService.responses.submitFormResponse(
-        formId,
+        form.id,
         formData
       );
 
@@ -247,6 +259,7 @@ export default function TaskDetail() {
         throw new Error("پاسخی دریافت نشد");
       }
 
+      // Create relation between task and response
       await supabaseService.tasks.createTaskResponse(task.id, response.id);
 
       // Update local state
@@ -274,6 +287,8 @@ export default function TaskDetail() {
       setFormData(resetData);
 
       toast.success("فرم با موفقیت ارسال شد!");
+
+      navigate('/tasks')
     } catch (error: any) {
       console.error("Error submitting form:", error);
       toast.error(`ارسال فرم ناموفق بود: ${error.message}`);
@@ -424,11 +439,9 @@ export default function TaskDetail() {
     }
   };
 
-  // Get status badge directly from the status object
   const getStatusBadge = (status: any) => {
     if (!status) return null;
     
-    // If it's a string (fallback), use default styling
     if (typeof status === 'string') {
       return (
         <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
@@ -437,7 +450,6 @@ export default function TaskDetail() {
       );
     }
 
-    // Use the status object directly from the database
     const backgroundColor = status.color || status.statusColor || '#6b7280';
     const textColor = '#fff';
     
@@ -455,23 +467,16 @@ export default function TaskDetail() {
     );
   };
 
-  const getStepTypeBadge = (type: string) => {
-    const typeConfig: Record<string, { label: string; color: string }> = {
-      'fill-form': { label: 'فرم', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200' },
-      'assign-task': { label: 'تخصیص', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' },
-      'change-status': { label: 'تغییر وضعیت', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200' },
-      'condition': { label: 'شرط', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
-      'start': { label: 'شروع', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-      'end': { label: 'پایان', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+  const getStepName = (step: any) => {
+    const stepNames: Record<string, string> = {
+      'fill-form': 'تکمیل فرم',
+      'assign-task': 'تخصیص وظیفه',
+      'change-status': 'تغییر وضعیت',
+      'condition': 'شرط',
+      'start': 'شروع',
+      'end': 'پایان',
     };
-
-    const config = typeConfig[type] || { label: type, color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200' };
-
-    return (
-      <Badge className={config.color} variant="outline">
-        {config.label}
-      </Badge>
-    );
+    return stepNames[step?.step_name] || step?.step_name || 'گام نامشخص';
   };
 
   const getUserName = (userId: string | null) => {
@@ -579,9 +584,11 @@ export default function TaskDetail() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-2xl md:text-3xl font-bold">
-                  {task.step?.label || 'بدون عنوان'}
+                  {getStepName(task.step)}
                 </h1>
-                {getStepTypeBadge(task.step?.type)}
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {task.step?.step_name}
+                </Badge>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground flex-wrap">
                 <FileText className="h-4 w-4" />
@@ -589,11 +596,11 @@ export default function TaskDetail() {
                 <span className="mx-2">•</span>
                 <Calendar className="h-4 w-4" />
                 <span>ایجاد: {formatDateTime(task.created_at)}</span>
-                {task.form && (
+                {task.step?.form_id && (
                   <>
                     <span className="mx-2">•</span>
                     <FileText className="h-4 w-4" />
-                    <span>{task.form.title}</span>
+                    <span>فرم: {task.step.form_id}</span>
                   </>
                 )}
               </div>
@@ -630,22 +637,6 @@ export default function TaskDetail() {
                       </Avatar>
                       <span className="font-medium">
                         {getUserName(task.assigned_to)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">
-                      ایجاد شده توسط
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="text-xs">
-                          {getInitials(getUserName(task.created_by))}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">
-                        {getUserName(task.created_by)}
                       </span>
                     </div>
                   </div>
@@ -756,11 +747,11 @@ export default function TaskDetail() {
               </Card>
             )}
 
-            {/* Current Form Card - Always show if user can fill form */}
-            {canFillForm && (
+            {/* Current Form Card - Show if user can fill form and form is loaded */}
+            {canFillForm && form && (
               <Card>
                 <CardHeader>
-                  <CardTitle>فرم جدید</CardTitle>
+                  <CardTitle>فرم {form.title}</CardTitle>
                   <CardDescription>
                     لطفاً فرم زیر را تکمیل کنید
                   </CardDescription>
@@ -811,6 +802,18 @@ export default function TaskDetail() {
                 </form>
               </Card>
             )}
+
+            {/* No Form Available Message */}
+            {isFillFormTask && !form && !loading && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 text-amber-600">
+                    <AlertCircle className="h-5 w-5" />
+                    <p>فرم مرتبط با این وظیفه یافت نشد.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right Column - Metadata */}
@@ -823,27 +826,23 @@ export default function TaskDetail() {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">شناسه گام:</span>
-                  <span className="font-mono text-xs">{task.step?.id}</span>
+                  <span className="font-mono text-xs">{task.step?.step_id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">نوع گام:</span>
+                  <span className="text-muted-foreground">نام گام:</span>
                   <Badge variant="outline" className="text-xs">
-                    {task.step?.type}
+                    {task.step?.step_name}
                   </Badge>
                 </div>
                 {task.step?.form_id && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">شناسه فرم گام:</span>
+                    <span className="text-muted-foreground">شناسه فرم:</span>
                     <span className="font-mono text-xs">{task.step.form_id}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">تعداد پاسخ‌ها:</span>
                   <span className="font-mono">{task.responses?.length || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">شناسه فرم:</span>
-                  <span className="font-mono">{task.form_id || "-"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">آخرین به‌روزرسانی:</span>
@@ -853,7 +852,7 @@ export default function TaskDetail() {
             </Card>
 
             {/* Info Card - Shows when no previous responses */}
-            {!task.responses?.length && canFillForm && (
+            {!task.responses?.length && canFillForm && form && (
               <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3">
