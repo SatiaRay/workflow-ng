@@ -1,6 +1,7 @@
 import { FormService } from "./form-services";
 import { ResponseService } from "./response-services";
 import { RoleService } from "./role-service";
+import { TaskService } from "./task-service";
 import { UserService } from "./user-services";
 import { WorkflowService } from "./workflow-service";
 
@@ -9,6 +10,7 @@ export const responseService = new ResponseService();
 export const userService = new UserService();
 export const roleService = new RoleService();
 export const workflowService = new WorkflowService();
+export const taskService = new TaskService();
 
 export * from "./types";
 
@@ -16,6 +18,7 @@ export class SupabaseService {
   forms = formService;
   responses = responseService;
   users = userService;
+  tasks = taskService;
 
   // You can also keep the old method names as aliases
   getForms = formService.getForms.bind(formService);
@@ -47,6 +50,18 @@ export class SupabaseService {
   deleteWorkflow = workflowService.deleteWorkflow.bind(workflowService);
   toggleWorkflowStatus =
     workflowService.toggleWorkflowStatus.bind(workflowService);
+
+  // Task methods
+  getTaskWithResponses = taskService.getTaskWithResponses.bind(taskService);
+  getTasksByAssignee = taskService.getTasksByAssignee.bind(taskService);
+  getTasksBySubmitter = taskService.getTasksBySubmitter.bind(taskService);
+  getTaskById = taskService.getTaskById.bind(taskService);
+  updateTaskStatus = taskService.updateTaskStatus.bind(taskService);
+  updateTask = taskService.updateTask.bind(taskService);
+  addTaskNote = taskService.addTaskNote.bind(taskService);
+  createTask = taskService.createTask.bind(taskService);
+  createTaskResponse = taskService.createTaskResponse.bind(taskService);
+  getTaskStats = taskService.getTaskStats.bind(taskService);
 }
 
 // Default export for backward compatibility

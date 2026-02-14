@@ -1,5 +1,5 @@
 // services/workflow-service.ts
-import { BaseSupabaseService } from './base-service';
+import { BaseSupabaseService } from "./base-service";
 
 export interface Workflow {
   id: number;
@@ -7,15 +7,15 @@ export interface Workflow {
   description?: string;
   schema: any; // JSONB field for workflow schema
   trigger_form_id: number;
-  status: 'draft' | 'active' | 'inactive' | 'archived';
+  status: "draft" | "active" | "inactive" | "archived";
   active_instances: number;
   completed_instances: number;
   created_by?: string;
   created_at: string;
   updated_at: string;
-  
-  // Joined fields
-  form?: {
+
+  // Joined fields - now using trigger_form to match the relationship
+  trigger_form?: {
     id: number;
     title: string;
   };
@@ -35,34 +35,40 @@ export class WorkflowService extends BaseSupabaseService {
   async getWorkflows(
     page: number = 1,
     pageSize: number = 10,
-    status?: string
-  ): Promise<{ data: Workflow[]; total: number; page: number; pageSize: number }> {
+    status?: string,
+  ): Promise<{
+    data: Workflow[];
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
     try {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      let query = this.supabase
-        .from('workflows')
-        .select(`
+      let query = this.supabase.from("workflows").select(
+        `
           *,
-          form:forms!inner (
+          trigger_form:forms!workflows_trigger_form_id_fkey (
             id,
             title
           )
-        `, { count: 'exact' });
+        `,
+        { count: "exact" },
+      );
 
       // Add status filter if provided
-      if (status && status !== 'all') {
-        query = query.eq('status', status);
+      if (status && status !== "all") {
+        query = query.eq("status", status);
       }
 
       // Add pagination and ordering
       const { data, error, count } = await query
         .range(from, to)
-        .order('created_at', { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error fetching workflows:', error);
+        console.error("Error fetching workflows:", error);
         throw error;
       }
 
@@ -70,49 +76,51 @@ export class WorkflowService extends BaseSupabaseService {
         data: data || [],
         total: count || 0,
         page,
-        pageSize
+        pageSize,
       };
     } catch (error) {
-      console.error('Error in getWorkflows:', error);
+      console.error("Error in getWorkflows:", error);
       throw error;
     }
   }
 
   async getWorkflow(id: number): Promise<Workflow | null> {
-  try {
-    const { data, error } = await this.supabase
-      .from('workflows')
-      .select(`
-        *,
-        form:forms!inner (
-          id,
-          title
+    try {
+      const { data, error } = await this.supabase
+        .from("workflows")
+        .select(
+          `
+          *,
+          trigger_form:forms!workflows_trigger_form_id_fkey (
+            id,
+            title
+          )
+        `,
         )
-      `)
-      .eq('id', id)
-      .single();
+        .eq("id", id)
+        .single();
 
-    if (error) {
-      console.error('Error fetching workflow:', error);
-      return null;
+      if (error) {
+        console.error("Error fetching workflow:", error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error in getWorkflow:", error);
+      throw error;
     }
-
-    return data;
-  } catch (error) {
-    console.error('Error in getWorkflow:', error);
-    throw error;
   }
-}
 
   async getWorkflowStats(): Promise<WorkflowStats> {
     try {
       // Get total counts
       const { data, error } = await this.supabase
-        .from('workflows')
-        .select('status, active_instances, completed_instances');
+        .from("workflows")
+        .select("status, active_instances, completed_instances");
 
       if (error) {
-        console.error('Error fetching workflow stats:', error);
+        console.error("Error fetching workflow stats:", error);
         throw error;
       }
 
@@ -127,29 +135,31 @@ export class WorkflowService extends BaseSupabaseService {
       };
 
       // Calculate counts by status
-      data?.forEach(workflow => {
+      data?.forEach((workflow) => {
         switch (workflow.status) {
-          case 'active':
+          case "active":
             stats.active++;
             break;
-          case 'draft':
+          case "draft":
             stats.draft++;
             break;
-          case 'inactive':
+          case "inactive":
             stats.inactive++;
             break;
-          case 'archived':
+          case "archived":
             stats.archived++;
             break;
         }
 
-        stats.total_instances += (workflow.active_instances || 0) + (workflow.completed_instances || 0);
+        stats.total_instances +=
+          (workflow.active_instances || 0) +
+          (workflow.completed_instances || 0);
         stats.active_instances += workflow.active_instances || 0;
       });
 
       return stats;
     } catch (error) {
-      console.error('Error in getWorkflowStats:', error);
+      console.error("Error in getWorkflowStats:", error);
       throw error;
     }
   }
@@ -162,61 +172,74 @@ export class WorkflowService extends BaseSupabaseService {
   }): Promise<Workflow> {
     try {
       const { data, error } = await this.supabase
-        .from('workflows')
-        .insert([{
-          name: workflowData.name,
-          description: workflowData.description,
-          trigger_form_id: workflowData.trigger_form_id,
-          schema: workflowData.schema || { nodes: [], connections: [], settings: {} },
-          status: 'draft'
-        }])
-        .select(`
+        .from("workflows")
+        .insert([
+          {
+            name: workflowData.name,
+            description: workflowData.description,
+            trigger_form_id: workflowData.trigger_form_id,
+            schema: workflowData.schema || {
+              nodes: [],
+              connections: [],
+              settings: {},
+            },
+            status: "draft",
+          },
+        ])
+        .select(
+          `
           *,
-          form:forms!inner (
+          trigger_form:forms!workflows_trigger_form_id_fkey (
             id,
             title
           )
-        `)
+        `,
+        )
         .single();
 
       if (error) {
-        console.error('Error creating workflow:', error);
+        console.error("Error creating workflow:", error);
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in createWorkflow:', error);
+      console.error("Error in createWorkflow:", error);
       throw error;
     }
   }
 
-  async updateWorkflow(id: number, updates: Partial<Workflow>): Promise<Workflow> {
+  async updateWorkflow(
+    id: number,
+    updates: Partial<Workflow>,
+  ): Promise<Workflow> {
     try {
       const { data, error } = await this.supabase
-        .from('workflows')
+        .from("workflows")
         .update({
           ...updates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', id)
-        .select(`
+        .eq("id", id)
+        .select(
+          `
           *,
-          form:forms!inner (
+          trigger_form:forms!workflows_trigger_form_id_fkey (
             id,
             title
           )
-        `)
+        `,
+        )
         .single();
 
       if (error) {
-        console.error('Error updating workflow:', error);
+        console.error("Error updating workflow:", error);
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in updateWorkflow:', error);
+      console.error("Error in updateWorkflow:", error);
       throw error;
     }
   }
@@ -224,32 +247,35 @@ export class WorkflowService extends BaseSupabaseService {
   async deleteWorkflow(id: number): Promise<void> {
     try {
       const { error } = await this.supabase
-        .from('workflows')
+        .from("workflows")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) {
-        console.error('Error deleting workflow:', error);
+        console.error("Error deleting workflow:", error);
         throw error;
       }
     } catch (error) {
-      console.error('Error in deleteWorkflow:', error);
+      console.error("Error in deleteWorkflow:", error);
       throw error;
     }
   }
 
-  async toggleWorkflowStatus(id: number, currentStatus: string): Promise<Workflow> {
+  async toggleWorkflowStatus(
+    id: number,
+    currentStatus: string,
+  ): Promise<Workflow> {
     let newStatus: string;
-    
+
     switch (currentStatus) {
-      case 'draft':
-        newStatus = 'active';
+      case "draft":
+        newStatus = "active";
         break;
-      case 'active':
-        newStatus = 'inactive';
+      case "active":
+        newStatus = "inactive";
         break;
-      case 'inactive':
-        newStatus = 'active';
+      case "inactive":
+        newStatus = "active";
         break;
       default:
         newStatus = currentStatus;
