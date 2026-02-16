@@ -5,7 +5,7 @@ import { AuthProvider } from "@/context/auth-context";
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider>
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>
