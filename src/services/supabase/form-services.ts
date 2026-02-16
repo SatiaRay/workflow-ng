@@ -1,5 +1,5 @@
+import type { Form } from '@/types/form';
 import { BaseSupabaseService } from './base-service';
-import type { Form } from './types';
 
 export class FormService extends BaseSupabaseService {
   async getForms(): Promise<Form[]> {
