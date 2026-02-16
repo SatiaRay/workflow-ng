@@ -69,24 +69,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import DeleteWorkflowConfirmation from "@/components/delete-workflow-confirmation";
-
-interface Workflow {
-  id: number;
-  name: string;
-  description?: string;
-  schema: any;
-  trigger_form_id: number;
-  status: 'draft' | 'active' | 'inactive' | 'archived';
-  active_instances: number;
-  completed_instances: number;
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
-  form?: {
-    id: number;
-    title: string;
-  };
-}
+import type { Workflow } from "@/types/workflow";
 
 interface Form {
   id: number;
