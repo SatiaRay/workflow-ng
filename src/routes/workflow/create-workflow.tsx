@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
-import WorkflowEditor from "@/components/workflow/workflow-editor";
+import WorkflowEditor from "@/components/workflow/diagram/workflow-editor";
 import { Stepper } from "@/components/ui/stepper";
 
 interface FormData {
