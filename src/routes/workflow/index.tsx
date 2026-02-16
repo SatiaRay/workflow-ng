@@ -1,4 +1,3 @@
-// pages/workflows-index.tsx
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,6 +26,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -44,6 +56,7 @@ import {
   MoreVertical,
   AlertCircle,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
@@ -55,7 +68,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import DeleteWorkflowConfirmation from "@/components/delete-workflow-confirmation"; // Add this import
+import DeleteWorkflowConfirmation from "@/components/delete-workflow-confirmation";
 
 interface Workflow {
   id: number;
@@ -75,11 +88,27 @@ interface Workflow {
   };
 }
 
+interface Form {
+  id: number;
+  title: string;
+}
+
 export default function WorkflowsIndex() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [forms, setForms] = useState<Form[]>([]);
+
+  // Create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newWorkflow, setNewWorkflow] = useState({
+    name: "",
+    description: "",
+    trigger_form_id: "",
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,9 +120,24 @@ export default function WorkflowsIndex() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
   
-  // Add state for delete confirmation dialog
+  // Delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
+
+  // Load forms for create dialog
+  useEffect(() => {
+    loadForms();
+  }, []);
+
+  const loadForms = async () => {
+    try {
+      const formsData = await supabaseService.forms.getForms();
+      setForms(formsData);
+    } catch (error) {
+      console.error("Error loading forms:", error);
+      toast.error("بارگذاری لیست فرم‌ها ناموفق بود");
+    }
+  };
 
   const fetchWorkflows = useCallback(async () => {
     setLoading(true);
@@ -125,6 +169,72 @@ export default function WorkflowsIndex() {
     fetchWorkflows();
   }, [fetchWorkflows]);
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!newWorkflow.name.trim()) {
+      errors.name = "نام گردش کار الزامی است";
+    }
+
+    if (!newWorkflow.trigger_form_id) {
+      errors.trigger_form_id = "انتخاب فرم ماشه الزامی است";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreateWorkflow = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setCreating(true);
+    try {
+      // Create workflow with empty schema
+      const workflowData = {
+        name: newWorkflow.name,
+        description: newWorkflow.description || null,
+        trigger_form_id: parseInt(newWorkflow.trigger_form_id),
+        schema: { nodes: [], edges: [] },
+        status: 'draft',
+      };
+
+      const createdWorkflow = await supabaseService.createWorkflow(workflowData);
+
+      toast.success("گردش کار با موفقیت ایجاد شد");
+      
+      // Close dialog and reset form
+      setCreateDialogOpen(false);
+      setNewWorkflow({
+        name: "",
+        description: "",
+        trigger_form_id: "",
+      });
+      setFormErrors({});
+
+      // Navigate to the new workflow detail page
+      navigate(`/workflows/${createdWorkflow.id}`);
+      
+      // Refresh the list
+      fetchWorkflows();
+    } catch (error: any) {
+      console.error("Error creating workflow:", error);
+      
+      let errorMessage = "ایجاد گردش کار ناموفق بود";
+      if (error.message?.includes("unique constraint")) {
+        errorMessage = "گردش کاری با این نام از قبل وجود دارد";
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+
+      setFormErrors({ general: errorMessage });
+      toast.error(errorMessage);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const handleStatusToggle = async (workflow: Workflow) => {
     if (workflow.status === 'archived') {
       toast.error("گردش‌کار بایگانی شده را نمی‌توان فعال/غیرفعال کرد");
@@ -138,7 +248,6 @@ export default function WorkflowsIndex() {
         workflow.status
       );
 
-      // Update local state
       setWorkflows(prev => prev.map(w => 
         w.id === workflow.id ? updatedWorkflow : w
       ));
@@ -153,13 +262,11 @@ export default function WorkflowsIndex() {
     }
   };
 
-  // Updated handleDelete function
   const handleDelete = async (id: number) => {
     setDeletingId(id);
     try {
       await supabaseService.deleteWorkflow(id);
 
-      // Remove from local state
       setWorkflows(prev => prev.filter(w => w.id !== id));
       setTotalCount(prev => prev - 1);
 
@@ -174,19 +281,16 @@ export default function WorkflowsIndex() {
     }
   };
 
-  // Open delete confirmation dialog
   const openDeleteDialog = (workflow: Workflow) => {
     setWorkflowToDelete(workflow);
     setDeleteDialogOpen(true);
   };
 
-  // Cancel delete
   const cancelDelete = () => {
     setDeleteDialogOpen(false);
     setWorkflowToDelete(null);
   };
 
-  // Confirm delete
   const confirmDelete = () => {
     if (workflowToDelete) {
       handleDelete(workflowToDelete.id);
@@ -252,13 +356,6 @@ export default function WorkflowsIndex() {
             <Skeleton className="h-10 w-32" />
           </div>
 
-          {/* Stats Skeleton */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <Skeleton key={i} className="h-24 rounded-lg" />
-            ))}
-          </div>
-
           <Card>
             <CardHeader>
               <Skeleton className="h-6 w-32" />
@@ -289,13 +386,145 @@ export default function WorkflowsIndex() {
             </p>
           </div>
 
-          <Button
-            className="cursor-pointer"
-            onClick={() => navigate("/workflows/create")}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            ایجاد گردش‌کار جدید
-          </Button>
+          {/* Create Workflow Dialog */}
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="cursor-pointer">
+                <Plus className="w-4 h-4 ml-2" />
+                ایجاد گردش‌کار جدید
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>ایجاد گردش کار جدید</DialogTitle>
+                <DialogDescription>
+                  اطلاعات اولیه گردش کار را وارد کنید. پس از ایجاد، می‌توانید فرآیند را طراحی کنید.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                {formErrors.general && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{formErrors.general}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    نام گردش کار <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newWorkflow.name}
+                    onChange={(e) => {
+                      setNewWorkflow(prev => ({ ...prev, name: e.target.value }));
+                      if (formErrors.name) {
+                        setFormErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.name;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    placeholder="مثال: فرآیند تایید درخواست"
+                    disabled={creating}
+                  />
+                  {formErrors.name && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {formErrors.name}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">توضیحات</Label>
+                  <Textarea
+                    id="description"
+                    value={newWorkflow.description}
+                    onChange={(e) => setNewWorkflow(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="توضیحی کوتاه درباره هدف و عملکرد این گردش کار"
+                    rows={3}
+                    disabled={creating}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="trigger_form_id">
+                    فرم ماشه <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={newWorkflow.trigger_form_id}
+                    onValueChange={(value) => {
+                      setNewWorkflow(prev => ({ ...prev, trigger_form_id: value }));
+                      if (formErrors.trigger_form_id) {
+                        setFormErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.trigger_form_id;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                    disabled={creating}
+                  >
+                    <SelectTrigger id="trigger_form_id">
+                      <FileText className="w-4 h-4 ml-2" />
+                      <SelectValue placeholder="انتخاب فرم ماشه" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {forms.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          فرمی موجود نیست
+                        </div>
+                      ) : (
+                        forms.map((form) => (
+                          <SelectItem key={form.id} value={form.id.toString()}>
+                            {form.title}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.trigger_form_id && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {formErrors.trigger_form_id}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    این فرم هنگام ارسال، گردش کار را فعال می‌کند
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setCreateDialogOpen(false)}
+                  disabled={creating}
+                >
+                  انصراف
+                </Button>
+                <Button
+                  onClick={handleCreateWorkflow}
+                  disabled={creating}
+                >
+                  {creating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      در حال ایجاد...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 ml-2" />
+                      ایجاد گردش کار
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Workflows Table */}
@@ -395,6 +624,13 @@ export default function WorkflowsIndex() {
               <div className="text-center py-12">
                 <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">گردش‌کاری یافت نشد</h3>
+                <p className="text-muted-foreground mb-4">
+                  اولین گردش کار خود را ایجاد کنید
+                </p>
+                <Button onClick={() => setCreateDialogOpen(true)}>
+                  <Plus className="w-4 h-4 ml-2" />
+                  ایجاد گردش کار جدید
+                </Button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -469,18 +705,20 @@ export default function WorkflowsIndex() {
                               <DropdownMenuLabel>عملیات</DropdownMenuLabel>
                               
                               <DropdownMenuItem
-                                onClick={() => navigate(`/workflows/show/${workflow.id}`)}
+                                onClick={() => navigate(`/workflows/${workflow.id}`)}
                               >
                                 <Eye className="w-4 h-4 ml-2" />
                                 مشاهده جزئیات
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/workflows/${workflow.id}/edit`)}
-                              >
-                                <Edit className="w-4 h-4 ml-2" />
-                                ویرایش
-                              </DropdownMenuItem>
+                              {workflow.status === 'draft' && (
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/workflows/${workflow.id}`)}
+                                >
+                                  <Edit className="w-4 h-4 ml-2" />
+                                  طراحی فرآیند
+                                </DropdownMenuItem>
+                              )}
 
                               <DropdownMenuSeparator />
 
@@ -497,15 +735,6 @@ export default function WorkflowsIndex() {
                                     <Play className="w-4 h-4 ml-2" />
                                   )}
                                   {workflow.status === 'active' ? 'غیرفعال کردن' : 'فعال کردن'}
-                                </DropdownMenuItem>
-                              )}
-
-                              {workflow.status === 'draft' && (
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/workflows/design/${workflow.id}`)}
-                                >
-                                  <BarChart3 className="w-4 h-4 ml-2" />
-                                  طراحی فرآیند
                                 </DropdownMenuItem>
                               )}
 
