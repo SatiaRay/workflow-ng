@@ -262,12 +262,11 @@ export class WorkflowService extends BaseSupabaseService {
   }
 
   async toggleWorkflowStatus(
-    id: number,
-    currentStatus: string,
+    workflow: Workflow
   ): Promise<Workflow> {
     let newStatus: string;
 
-    switch (currentStatus) {
+    switch (workflow.status) {
       case "draft":
         newStatus = "active";
         break;
@@ -278,9 +277,9 @@ export class WorkflowService extends BaseSupabaseService {
         newStatus = "active";
         break;
       default:
-        newStatus = currentStatus;
+        newStatus = workflow.status;
     }
 
-    return this.updateWorkflow(id, { status: newStatus as any });
+    return this.updateWorkflow(workflow.id, { status: newStatus as any });
   }
 }
