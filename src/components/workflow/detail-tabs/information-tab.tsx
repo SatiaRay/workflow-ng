@@ -1,3 +1,4 @@
+// components/workflow/detail-tabs/information-tab.tsx
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -8,11 +9,23 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { TabsContent } from "@/components/ui/tabs";
-import { FileText, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FileText, Calendar, Edit2, Save, X, Loader2, AlertCircle } from "lucide-react";
 import { supabaseService } from "@/services/supabase.service";
 import { useWorkflowDetail } from "@/context/workflow-detail-context";
 import { formatDateTime } from "@/lib/utils";
 import StatusBadge from "../status-badge";
+import type { WorkflowStatus } from "@/types/workflow";
 
 interface User {
   id: string;
@@ -21,18 +34,47 @@ interface User {
   full_name?: string;
 }
 
+interface Form {
+  id: number;
+  title: string;
+}
+
 export const InformationTab = () => {
-  const { workflow } = useWorkflowDetail();
+  const { workflow, updateWorkflow } = useWorkflowDetail();
   const [users, setUsers] = useState<User[]>([]);
+  const [forms, setForms] = useState<Form[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  
+  // Editable fields state
+  const [editedName, setEditedName] = useState(workflow.name);
+  const [editedDescription, setEditedDescription] = useState(workflow.description || "");
+  const [editedTriggerFormId, setEditedTriggerFormId] = useState(workflow.trigger_form_id.toString());
+  const [editedStatus, setEditedStatus] = useState<WorkflowStatus>(workflow.status);
 
   useEffect(() => {
     fetchUsers();
+    fetchForms();
   }, []);
 
   const fetchUsers = async () => {
-    const profilesResponse = await supabaseService.users.getProfiles(1, 100);
+    try {
+      const profilesResponse = await supabaseService.users.getProfiles(1, 100);
+      setUsers(profilesResponse.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
 
-    setUsers(profilesResponse.data);
+  const fetchForms = async () => {
+    try {
+      const formsData = await supabaseService.forms.getForms();
+      setForms(formsData);
+    } catch (error) {
+      console.error("Error fetching forms:", error);
+    }
   };
 
   const getUserName = (userId: string | undefined) => {
@@ -51,47 +93,218 @@ export const InformationTab = () => {
       .slice(0, 2);
   };
 
+  const handleEdit = () => {
+    setError(null);
+    setValidationError(null);
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setEditedName(workflow.name);
+    setEditedDescription(workflow.description || "");
+    setEditedTriggerFormId(workflow.trigger_form_id.toString());
+    setEditedStatus(workflow.status);
+    setError(null);
+    setValidationError(null);
+    setIsEditing(false);
+  };
+
+  const validateForm = (): boolean => {
+    if (!editedName.trim()) {
+      setValidationError("نام گردش کار نمی‌تواند خالی باشد");
+      return false;
+    }
+    setValidationError(null);
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    
+    try {
+      const updatedWorkflow = await supabaseService.updateWorkflow(workflow.id, {
+        name: editedName,
+        description: editedDescription || null,
+        trigger_form_id: parseInt(editedTriggerFormId),
+        status: editedStatus,
+      });
+
+      updateWorkflow(updatedWorkflow);
+      setIsEditing(false);
+    } catch (error: any) {
+      console.error("Error updating workflow:", error);
+      setError(`ذخیره تغییرات ناموفق بود: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <TabsContent value="information" className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>اطلاعات پایه</CardTitle>
-          <CardDescription>مشخصات اصلی گردش کار</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>اطلاعات پایه</CardTitle>
+            <CardDescription>مشخصات اصلی گردش کار</CardDescription>
+          </div>
+          {!isEditing ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEdit}
+              className="gap-2"
+            >
+              <Edit2 className="h-4 w-4" />
+              ویرایش
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+                disabled={saving}
+                className="gap-2"
+              >
+                <X className="h-4 w-4" />
+                انصراف
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving}
+                className="gap-2"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                ذخیره
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Error message display */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Name Field - Editable */}
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">نام گردش کار</div>
-              <div className="font-medium">{workflow.name}</div>
+              {isEditing ? (
+                <div className="space-y-1">
+                  <Input
+                    value={editedName}
+                    onChange={(e) => {
+                      setEditedName(e.target.value);
+                      if (validationError) setValidationError(null);
+                    }}
+                    placeholder="نام گردش کار"
+                    disabled={saving}
+                    className={validationError ? "border-red-500" : ""}
+                  />
+                  {validationError && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {validationError}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="font-medium">{workflow.name}</div>
+              )}
             </div>
 
+            {/* Status Field - Editable */}
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">وضعیت</div>
-              <div>
-                <StatusBadge status={workflow.status} />
-              </div>
+              {isEditing ? (
+                <Select
+                  value={editedStatus}
+                  onValueChange={(value: WorkflowStatus) => setEditedStatus(value)}
+                  disabled={saving}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="انتخاب وضعیت" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">پیش‌نویس</SelectItem>
+                    <SelectItem value="active">فعال</SelectItem>
+                    <SelectItem value="inactive">غیرفعال</SelectItem>
+                    <SelectItem value="archived">بایگانی</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div>
+                  <StatusBadge status={workflow.status} />
+                </div>
+              )}
             </div>
 
-            {workflow.description && (
+            {/* Description Field - Editable */}
+            {(workflow.description || isEditing) && (
               <div className="col-span-2 space-y-1">
                 <div className="text-sm text-muted-foreground">توضیحات</div>
-                <div className="text-sm whitespace-pre-wrap">
-                  {workflow.description}
-                </div>
+                {isEditing ? (
+                  <Textarea
+                    value={editedDescription}
+                    onChange={(e) => setEditedDescription(e.target.value)}
+                    placeholder="توضیحات گردش کار"
+                    rows={3}
+                    disabled={saving}
+                  />
+                ) : (
+                  <div className="text-sm whitespace-pre-wrap">
+                    {workflow.description}
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Trigger Form Field - Editable */}
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">فرم ماشه</div>
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span>{workflow.form?.title || "فرم نامشخص"}</span>
-              </div>
+              {isEditing ? (
+                <Select
+                  value={editedTriggerFormId}
+                  onValueChange={setEditedTriggerFormId}
+                  disabled={saving}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="انتخاب فرم ماشه" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {forms.map((form) => (
+                      <SelectItem key={form.id} value={form.id.toString()}>
+                        {form.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span>{workflow.form?.title || "فرم نامشخص"}</span>
+                </div>
+              )}
               <div className="text-xs text-muted-foreground">
                 شناسه: {workflow.trigger_form_id}
               </div>
             </div>
 
+            {/* Created By - Read Only */}
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">
                 ایجاد شده توسط
@@ -106,6 +319,7 @@ export const InformationTab = () => {
               </div>
             </div>
 
+            {/* Created At - Read Only */}
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">تاریخ ایجاد</div>
               <div className="flex items-center gap-2">
@@ -114,6 +328,7 @@ export const InformationTab = () => {
               </div>
             </div>
 
+            {/* Updated At - Read Only */}
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">
                 آخرین به‌روزرسانی

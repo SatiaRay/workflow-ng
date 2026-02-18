@@ -8,6 +8,7 @@ import { toast } from "sonner";
 // Define the type for the context value
 type WorkflowDetailContextType = {
   workflow: Workflow;
+  updateWorkflow: (updatedWorkflow: Workflow) => void;
   toggleWorkflowStatus: () => Promise<boolean>;
   deleteWorkflow: () => void;
   activeTab: string;
@@ -20,18 +21,23 @@ export const WorkflowDetailContext = createContext<
 
 export function WorkflowDetailProvider({
   children,
-  workflow,
+  workflow: initialWorkflow,
 }: {
   children: React.ReactNode;
   workflow: Workflow;
 }) {
-  const navigate = useNavigate()
-
+  const navigate = useNavigate();
+  const [workflow, setWorkflow] = useState<Workflow>(initialWorkflow);
   const [activeTab, setActiveTab] = useState("information");
+
+  const updateWorkflow = (updatedWorkflow: Workflow) => {
+    setWorkflow(updatedWorkflow);
+  };
 
   const toggleWorkflowStatus = async () => {
     try {
-      await supabaseService.toggleWorkflowStatus(workflow);
+      const updatedWorkflow = await supabaseService.toggleWorkflowStatus(workflow);
+      setWorkflow(updatedWorkflow);
       return true;
     } catch (error: any) {
       console.error("Error toggling workflow status:", error);
@@ -52,6 +58,7 @@ export function WorkflowDetailProvider({
 
   const value: WorkflowDetailContextType = {
     workflow,
+    updateWorkflow,
     deleteWorkflow,
     toggleWorkflowStatus,
     activeTab,
