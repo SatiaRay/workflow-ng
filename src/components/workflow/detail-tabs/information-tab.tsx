@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FileText, Calendar, Edit2, Save, X, Loader2, AlertCircle } from "lucide-react";
-import { supabaseService } from "@/services/supabase.service";
+import { supabaseService } from "@/services/supabase";
 import { useWorkflowDetail } from "@/context/workflow-detail-context";
 import { formatDateTime } from "@/lib/utils";
 import StatusBadge from "../status-badge";
@@ -40,13 +40,12 @@ interface Form {
 }
 
 export const InformationTab = () => {
-  const { workflow, updateWorkflow } = useWorkflowDetail();
+  const { workflow, saveWorkflow, isSaving } = useWorkflowDetail();
   const [users, setUsers] = useState<User[]>([]);
   const [forms, setForms] = useState<Form[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
   // Editable fields state
   const [editedName, setEditedName] = useState(workflow.name);
@@ -94,7 +93,7 @@ export const InformationTab = () => {
   };
 
   const handleEdit = () => {
-    setError(null);
+    setSaveError(null);
     setValidationError(null);
     setIsEditing(true);
   };
@@ -104,7 +103,7 @@ export const InformationTab = () => {
     setEditedDescription(workflow.description || "");
     setEditedTriggerFormId(workflow.trigger_form_id.toString());
     setEditedStatus(workflow.status);
-    setError(null);
+    setSaveError(null);
     setValidationError(null);
     setIsEditing(false);
   };
@@ -123,24 +122,17 @@ export const InformationTab = () => {
       return;
     }
 
-    setSaving(true);
-    setError(null);
+    setSaveError(null);
     
-    try {
-      const updatedWorkflow = await supabaseService.updateWorkflow(workflow.id, {
-        name: editedName,
-        description: editedDescription || null,
-        trigger_form_id: parseInt(editedTriggerFormId),
-        status: editedStatus,
-      });
+    const success = await saveWorkflow({
+      name: editedName,
+      description: editedDescription || null,
+      trigger_form_id: parseInt(editedTriggerFormId),
+      status: editedStatus,
+    });
 
-      updateWorkflow(updatedWorkflow);
+    if (success) {
       setIsEditing(false);
-    } catch (error: any) {
-      console.error("Error updating workflow:", error);
-      setError(`ذخیره تغییرات ناموفق بود: ${error.message}`);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -158,6 +150,7 @@ export const InformationTab = () => {
               size="sm"
               onClick={handleEdit}
               className="gap-2"
+              disabled={isSaving}
             >
               <Edit2 className="h-4 w-4" />
               ویرایش
@@ -168,7 +161,7 @@ export const InformationTab = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleCancel}
-                disabled={saving}
+                disabled={isSaving}
                 className="gap-2"
               >
                 <X className="h-4 w-4" />
@@ -177,10 +170,10 @@ export const InformationTab = () => {
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={isSaving}
                 className="gap-2"
               >
-                {saving ? (
+                {isSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Save className="h-4 w-4" />
@@ -191,11 +184,10 @@ export const InformationTab = () => {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Error message display */}
-          {error && (
+          {saveError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{saveError}</AlertDescription>
             </Alert>
           )}
 
@@ -212,7 +204,7 @@ export const InformationTab = () => {
                       if (validationError) setValidationError(null);
                     }}
                     placeholder="نام گردش کار"
-                    disabled={saving}
+                    disabled={isSaving}
                     className={validationError ? "border-red-500" : ""}
                   />
                   {validationError && (
@@ -234,7 +226,7 @@ export const InformationTab = () => {
                 <Select
                   value={editedStatus}
                   onValueChange={(value: WorkflowStatus) => setEditedStatus(value)}
-                  disabled={saving}
+                  disabled={isSaving}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="انتخاب وضعیت" />
@@ -263,7 +255,7 @@ export const InformationTab = () => {
                     onChange={(e) => setEditedDescription(e.target.value)}
                     placeholder="توضیحات گردش کار"
                     rows={3}
-                    disabled={saving}
+                    disabled={isSaving}
                   />
                 ) : (
                   <div className="text-sm whitespace-pre-wrap">
@@ -280,7 +272,7 @@ export const InformationTab = () => {
                 <Select
                   value={editedTriggerFormId}
                   onValueChange={setEditedTriggerFormId}
-                  disabled={saving}
+                  disabled={isSaving}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="انتخاب فرم ماشه" />

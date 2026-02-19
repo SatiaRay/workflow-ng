@@ -1,3 +1,4 @@
+// context/workflow-detail-context.tsx
 import { supabaseService } from "@/services/supabase";
 import type { Workflow } from "@/types/workflow";
 import React, { createContext, useContext, useState } from "react";
@@ -9,10 +10,12 @@ import { toast } from "sonner";
 type WorkflowDetailContextType = {
   workflow: Workflow;
   updateWorkflow: (updatedWorkflow: Workflow) => void;
+  saveWorkflow: (updates: Partial<Workflow>) => Promise<boolean>;
   toggleWorkflowStatus: () => Promise<boolean>;
   deleteWorkflow: () => void;
   activeTab: string;
   setActiveTab: Dispatch<SetStateAction<string>>;
+  isSaving: boolean;
 };
 
 export const WorkflowDetailContext = createContext<
@@ -29,9 +32,26 @@ export function WorkflowDetailProvider({
   const navigate = useNavigate();
   const [workflow, setWorkflow] = useState<Workflow>(initialWorkflow);
   const [activeTab, setActiveTab] = useState("information");
+  const [isSaving, setIsSaving] = useState(false);
 
   const updateWorkflow = (updatedWorkflow: Workflow) => {
     setWorkflow(updatedWorkflow);
+  };
+
+  const saveWorkflow = async (updates: Partial<Workflow>): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      const updatedWorkflow = await supabaseService.updateWorkflow(workflow.id, updates);
+      setWorkflow(updatedWorkflow);
+      toast.success("تغییرات با موفقیت ذخیره شد");
+      return true;
+    } catch (error: any) {
+      console.error("Error saving workflow:", error);
+      toast.error(`ذخیره تغییرات ناموفق بود: ${error.message}`);
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const toggleWorkflowStatus = async () => {
@@ -59,10 +79,12 @@ export function WorkflowDetailProvider({
   const value: WorkflowDetailContextType = {
     workflow,
     updateWorkflow,
+    saveWorkflow,
     deleteWorkflow,
     toggleWorkflowStatus,
     activeTab,
     setActiveTab,
+    isSaving,
   };
 
   return (
