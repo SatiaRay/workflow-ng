@@ -89,38 +89,77 @@ const WorkflowEditorContent = ({
     }
   }, [nodes, edges, onChange]);
 
-  // Check if condition node should be enabled
+  // Update condition nodes based on their connected fill-form nodes
   useEffect(() => {
-    // Find the last fill-form node in the nodes array
+    // Update condition nodes based on their connected fill-form nodes
+    if (nodes.length > 0 && edges.length > 0) {
+      const updatedNodes = nodes.map(node => {
+        // Only process condition nodes
+        if (node.type !== 'condition') return node;
+
+        // Find incoming edges to this condition node
+        const incomingEdges = edges.filter(edge => edge.target === node.id);
+        
+        // If there are incoming edges, find the source nodes
+        if (incomingEdges.length > 0) {
+          // Get the source node (should be a fill-form node)
+          const sourceNodeId = incomingEdges[0].source;
+          const sourceNode = nodes.find(n => n.id === sourceNodeId);
+          
+          // If source node is a fill-form node with a form, update the condition node
+          if (sourceNode?.type === 'fill-form' && sourceNode.data.form) {
+            const form = sourceNode.data.form;
+            
+            // Only update if the form is different from current
+            if (node.data.selectedFormId !== form.id) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  selectedFormId: form.id,
+                  selectedForm: form,
+                  // Keep existing condition rules or initialize empty array
+                  conditionRules: node.data.conditionRules || []
+                }
+              };
+            }
+          }
+        } else {
+          // No incoming edges, clear the form reference
+          if (node.data.selectedFormId || node.data.selectedForm) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                selectedFormId: null,
+                selectedForm: null,
+                conditionRules: node.data.conditionRules || []
+              }
+            };
+          }
+        }
+        
+        return node;
+      });
+
+      // Check if any nodes were updated
+      const hasChanges = JSON.stringify(updatedNodes) !== JSON.stringify(nodes);
+      if (hasChanges) {
+        setNodes(updatedNodes);
+      }
+    }
+  }, [nodes, edges]);
+
+  // Check if condition node should be enabled in sidebar
+  useEffect(() => {
+    // Find the last fill-form node in the nodes array (for sidebar display)
     const fillFormNodes = nodes.filter(node => node.type === 'fill-form');
     const lastFillFormNode = fillFormNodes[fillFormNodes.length - 1];
     
     setLatestFillFormNode(lastFillFormNode || null);
     
-    // Condition node is enabled only if there's at least one fill-form node
-    setIsConditionDisabled(!lastFillFormNode);
-    
-    // Update condition nodes to reference the latest fill-form
-    if (lastFillFormNode) {
-      const updatedNodes = nodes.map(node => {
-        if (node.type === 'condition' && node.data.selectedFormId !== lastFillFormNode.data.form?.id) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              selectedFormId: lastFillFormNode.data.form?.id || null,
-              selectedForm: lastFillFormNode.data.form || null,
-              conditionRules: node.data.conditionRules || []
-            }
-          };
-        }
-        return node;
-      });
-      
-      if (JSON.stringify(updatedNodes) !== JSON.stringify(nodes)) {
-        setNodes(updatedNodes);
-      }
-    }
+    // Condition node is enabled only if there's at least one fill-form node in the diagram
+    setIsConditionDisabled(fillFormNodes.length === 0);
   }, [nodes]);
 
   // Handle connections
@@ -223,12 +262,12 @@ const WorkflowEditorContent = ({
         defaultData.form = null;
         break;
       case 'condition':
-        // If there's a latest fill-form node, use its form
-        const formToUse = latestFillFormNode?.data?.form || null;
+        // When adding a new condition node, don't pre-select any form
+        // The form will be set when connected to a fill-form node
         defaultData.label = 'شرط';
         defaultData.description = 'بررسی شرط بر اساس فرم‌های قبلی';
-        defaultData.selectedFormId = formToUse?.id || null;
-        defaultData.selectedForm = formToUse;
+        defaultData.selectedFormId = null;
+        defaultData.selectedForm = null;
         defaultData.conditionRules = [];
         break;
       case 'change-status':
@@ -257,7 +296,7 @@ const WorkflowEditorContent = ({
     };
 
     setNodes((nds) => [...nds, newNode]);
-  }, [reactFlowInstance, latestFillFormNode]);
+  }, [reactFlowInstance]);
 
   // Delete node
   const deleteNode = useCallback(
