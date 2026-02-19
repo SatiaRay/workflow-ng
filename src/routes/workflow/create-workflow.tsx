@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
 import WorkflowEditor from "@/components/workflow/workflow-editor";
 import { Stepper } from "@/components/ui/stepper";
+import { v4 as uuidv4 } from "uuid";
 
 interface FormData {
   name: string;
@@ -70,6 +71,50 @@ const steps = [
   },
 ];
 
+// Helper function to create initial workflow schema
+const createInitialSchema = (triggerFormId: number, triggerFormTitle: string) => {
+  const startNodeId = uuidv4();
+  const fillFormNodeId = uuidv4();
+
+  const startNode = {
+    id: startNodeId,
+    type: "start",
+    position: { x: 250, y: 200 },
+    data: {
+      label: "شروع",
+      description: "نقطه شروع فرآیند",
+    },
+  };
+
+  const fillFormNode = {
+    id: fillFormNodeId,
+    type: "fill-form",
+    position: { x: 500, y: 200 },
+    data: {
+      label: "تکمیل فرم",
+      description: `تکمیل فرم ${triggerFormTitle}`,
+      form: {
+        id: triggerFormId,
+        title: triggerFormTitle,
+      },
+    },
+  };
+
+  const edge = {
+    id: `${startNodeId}-${fillFormNodeId}`,
+    source: startNodeId,
+    target: fillFormNodeId,
+    type: "smoothstep",
+    animated: true,
+    style: { stroke: "#3b82f6" },
+  };
+
+  return {
+    nodes: [startNode, fillFormNode],
+    edges: [edge],
+  };
+};
+
 export default function CreateWorkflow() {
   const navigate = useNavigate();
 
@@ -77,6 +122,7 @@ export default function CreateWorkflow() {
   const [loading, setLoading] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
   const [loadingForms, setLoadingForms] = useState(true);
+  const [selectedForm, setSelectedForm] = useState<any>(null);
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -103,6 +149,27 @@ export default function CreateWorkflow() {
       setLoadingForms(false);
     }
   };
+
+  // Update schema when trigger form is selected
+  useEffect(() => {
+    if (formData.trigger_form_id && forms.length > 0) {
+      const form = forms.find((f) => f.id.toString() === formData.trigger_form_id);
+      if (form) {
+        setSelectedForm(form);
+        const initialSchema = createInitialSchema(form.id, form.title);
+        setFormData((prev) => ({
+          ...prev,
+          schema: initialSchema,
+        }));
+      }
+    } else {
+      setSelectedForm(null);
+      setFormData((prev) => ({
+        ...prev,
+        schema: { nodes: [], edges: [] },
+      }));
+    }
+  }, [formData.trigger_form_id, forms]);
 
   const handleWorkflowChange = useCallback((schema: any) => {
     setFormData((prev) => {
@@ -245,13 +312,11 @@ export default function CreateWorkflow() {
   const getNodeStats = () => {
     const stats = {
       total: formData.schema.nodes.length,
-      start: formData.schema.nodes.filter((n: any) => n.type === "start")
-        .length,
-      assign: formData.schema.nodes.filter((n: any) => n.type === "assign-task")
-        .length,
-      fillform: formData.schema.nodes.filter((n: any) => n.type === "fill-form"),
-      condition: formData.schema.nodes.filter((n: any) => n.type === "condition"),
-      changeStatus: formData.schema.nodes.filter((n: any) => n.type === "change-status"),
+      start: formData.schema.nodes.filter((n: any) => n.type === "start").length,
+      assign: formData.schema.nodes.filter((n: any) => n.type === "assign-task").length,
+      fillform: formData.schema.nodes.filter((n: any) => n.type === "fill-form").length,
+      condition: formData.schema.nodes.filter((n: any) => n.type === "condition").length,
+      changeStatus: formData.schema.nodes.filter((n: any) => n.type === "change-status").length,
       end: formData.schema.nodes.filter((n: any) => n.type === "end").length,
       connections: formData.schema.edges.length,
     };
@@ -479,10 +544,10 @@ export default function CreateWorkflow() {
                           شروع: {nodeStats.start}
                         </span>
                         <span className="text-blue-600 text-xs">
-                          فرآیند: {nodeStats.process}
+                          فرآیند: {nodeStats.process || nodeStats.assign}
                         </span>
                         <span className="text-yellow-600 text-xs">
-                          تصمیم: {nodeStats.decision}
+                          تصمیم: {nodeStats.condition}
                         </span>
                         <span className="text-red-600 text-xs">
                           پایان: {nodeStats.end}
@@ -513,7 +578,10 @@ export default function CreateWorkflow() {
               </CardHeader>
               <CardContent className="px-5">
                 <div className="h-[600px] min-h-[600px]">
-                  <WorkflowEditor onChange={handleWorkflowChange} workflowData={formData?.schema} />
+                  <WorkflowEditor
+                    onChange={handleWorkflowChange}
+                    workflowData={formData.schema}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -558,9 +626,7 @@ export default function CreateWorkflow() {
                           فرم ماشه
                         </Label>
                         <p className="font-medium">
-                          {forms.find(
-                            (f) => f.id.toString() === formData.trigger_form_id,
-                          )?.title || "-"}
+                          {selectedForm?.title || "-"}
                         </p>
                       </div>
                       <div>
@@ -613,7 +679,7 @@ export default function CreateWorkflow() {
                       </div>
                       <div className="bg-yellow-50 p-4 rounded-lg">
                         <div className="text-2xl font-bold text-yellow-600 text-center">
-                          {nodeStats.process}
+                          {nodeStats.assign}
                         </div>
                         <div className="text-sm text-muted-foreground text-center">
                           گره فرآیند
@@ -621,7 +687,7 @@ export default function CreateWorkflow() {
                       </div>
                       <div className="bg-purple-50 p-4 rounded-lg">
                         <div className="text-2xl font-bold text-purple-600 text-center">
-                          {nodeStats.decision}
+                          {nodeStats.condition}
                         </div>
                         <div className="text-sm text-muted-foreground text-center">
                           گره تصمیم
