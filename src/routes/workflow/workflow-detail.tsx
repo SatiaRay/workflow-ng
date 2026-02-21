@@ -310,11 +310,11 @@ const DesktopHeader = () => {
 };
 
 const DetailTabs = () => {
-  const { activeTab, setActiveTab } = useWorkflowDetail();
+  const { activeTab, setActiveTab, workflow } = useWorkflowDetail();
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <InformationTab />
+      <InformationTab workflow={workflow}/>
 
       <DiagramTab />
 

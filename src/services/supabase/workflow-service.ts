@@ -1,26 +1,8 @@
 // services/workflow-service.ts
 import { BaseSupabaseService } from "./base-service";
+import type { Workflow, WorkflowStatus } from "@/types/workflow";
 
-export interface Workflow {
-  id: number;
-  name: string;
-  description?: string;
-  schema: any; // JSONB field for workflow schema
-  trigger_form_id: number;
-  status: "draft" | "active" | "inactive" | "archived";
-  active_instances: number;
-  completed_instances: number;
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
-
-  // Joined fields - now using trigger_form to match the relationship
-  trigger_form?: {
-    id: number;
-    title: string;
-  };
-}
-
+// Keep this interface for stats as it's service-specific
 export interface WorkflowStats {
   total: number;
   active: number;
@@ -31,7 +13,58 @@ export interface WorkflowStats {
   active_instances: number;
 }
 
+// Database response type (what comes from Supabase)
+interface WorkflowDbResponse {
+  id: number;
+  name: string;
+  description?: string;
+  schema: any; // Will be parsed into WorkflowSchema
+  trigger_form_id: number;
+  status: string; // Comes as string from DB
+  active_instances: number;
+  completed_instances: number;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+  trigger_form?: {
+    id: number;
+    title: string;
+  };
+}
+
 export class WorkflowService extends BaseSupabaseService {
+  // Helper to transform DB response to domain Workflow type
+  private transformToWorkflow(dbWorkflow: WorkflowDbResponse): Workflow {
+    // Parse schema if it's stored as JSON string
+    const schema = typeof dbWorkflow.schema === 'string' 
+      ? JSON.parse(dbWorkflow.schema) 
+      : dbWorkflow.schema;
+
+    // Transform trigger_form to match the Form type from @/types/form
+    const trigger_form = dbWorkflow.trigger_form ? {
+      id: dbWorkflow.trigger_form.id,
+      title: dbWorkflow.trigger_form.title,
+      // Add other required Form fields with defaults or from related data
+      schema: {}, // You might need to fetch this separately
+      created_at: dbWorkflow.created_at,
+      description: null,
+    } : undefined;
+
+    return {
+      id: dbWorkflow.id,
+      name: dbWorkflow.name,
+      description: dbWorkflow.description,
+      schema: schema,
+      trigger_form: trigger_form as any, // Type assertion needed if Form type is complex
+      status: dbWorkflow.status as WorkflowStatus,
+      active_instances: dbWorkflow.active_instances,
+      completed_instances: dbWorkflow.completed_instances,
+      created_by: dbWorkflow.created_by,
+      created_at: dbWorkflow.created_at,
+      updated_at: dbWorkflow.updated_at,
+    };
+  }
+
   async getWorkflows(
     page: number = 1,
     pageSize: number = 10,
@@ -46,16 +79,18 @@ export class WorkflowService extends BaseSupabaseService {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      let query = this.supabase.from("workflows").select(
-        `
+      let query = this.supabase
+        .from("workflows")
+        .select(
+          `
           *,
           trigger_form:forms!workflows_trigger_form_id_fkey (
             id,
             title
           )
         `,
-        { count: "exact" },
-      );
+          { count: "exact" },
+        );
 
       // Add status filter if provided
       if (status && status !== "all") {
@@ -72,8 +107,13 @@ export class WorkflowService extends BaseSupabaseService {
         throw error;
       }
 
+      // Transform each workflow to match the domain type
+      const transformedData = (data || []).map(item => 
+        this.transformToWorkflow(item as WorkflowDbResponse)
+      );
+
       return {
-        data: data || [],
+        data: transformedData,
         total: count || 0,
         page,
         pageSize,
@@ -105,7 +145,7 @@ export class WorkflowService extends BaseSupabaseService {
         return null;
       }
 
-      return data;
+      return this.transformToWorkflow(data as WorkflowDbResponse);
     } catch (error) {
       console.error("Error in getWorkflow:", error);
       throw error;
@@ -179,9 +219,8 @@ export class WorkflowService extends BaseSupabaseService {
             description: workflowData.description,
             trigger_form_id: workflowData.trigger_form_id,
             schema: workflowData.schema || {
+              edges: [],
               nodes: [],
-              connections: [],
-              settings: {},
             },
             status: "draft",
           },
@@ -202,7 +241,7 @@ export class WorkflowService extends BaseSupabaseService {
         throw error;
       }
 
-      return data;
+      return this.transformToWorkflow(data as WorkflowDbResponse);
     } catch (error) {
       console.error("Error in createWorkflow:", error);
       throw error;
@@ -214,12 +253,21 @@ export class WorkflowService extends BaseSupabaseService {
     updates: Partial<Workflow>,
   ): Promise<Workflow> {
     try {
+      // Extract only the fields that exist in the database
+      const dbUpdates: any = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.schema !== undefined) dbUpdates.schema = updates.schema;
+      if (updates.status !== undefined) dbUpdates.status = updates.status;
+      if (updates.active_instances !== undefined) dbUpdates.active_instances = updates.active_instances;
+      if (updates.completed_instances !== undefined) dbUpdates.completed_instances = updates.completed_instances;
+
       const { data, error } = await this.supabase
         .from("workflows")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
+        .update(dbUpdates)
         .eq("id", id)
         .select(
           `
@@ -237,7 +285,7 @@ export class WorkflowService extends BaseSupabaseService {
         throw error;
       }
 
-      return data;
+      return this.transformToWorkflow(data as WorkflowDbResponse);
     } catch (error) {
       console.error("Error in updateWorkflow:", error);
       throw error;
@@ -261,10 +309,8 @@ export class WorkflowService extends BaseSupabaseService {
     }
   }
 
-  async toggleWorkflowStatus(
-    workflow: Workflow
-  ): Promise<Workflow> {
-    let newStatus: string;
+  async toggleWorkflowStatus(workflow: Workflow): Promise<Workflow> {
+    let newStatus: WorkflowStatus;
 
     switch (workflow.status) {
       case "draft":
@@ -280,6 +326,6 @@ export class WorkflowService extends BaseSupabaseService {
         newStatus = workflow.status;
     }
 
-    return this.updateWorkflow(workflow.id, { status: newStatus as any });
+    return this.updateWorkflow(workflow.id, { status: newStatus });
   }
 }
