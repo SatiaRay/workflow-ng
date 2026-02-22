@@ -4,8 +4,32 @@ import type { Form } from "../../../../src/types/form";
 import { InformationTab } from "../../../../src/components/workflow/detail-tabs/information-tab";
 import { act } from "react";
 import userEvent from "@testing-library/user-event";
-import { it, expect } from 'vitest';
+import { it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
+import { supabaseService } from '../../../../src/services/supabase.service';
+
+vi.mock('@/services/supabase', () => ({
+  supabaseService: {
+    getForms: vi.fn()
+  }
+}));
+
+(supabaseService.getForms as any).mockResolvedValue([
+      { 
+        id: '1', 
+        title: 'Form 1', // This is what the component expects
+        name: 'Form 1', // Include both if needed
+        fields: [],
+        created_at: new Date().toISOString()
+      },
+      { 
+        id: '2', 
+        title: 'Form 2',
+        name: 'Form 2', 
+        fields: [],
+        created_at: new Date().toISOString()
+      }
+    ]);
 
 const mockTriggerForm: Form = {
   id: 12,

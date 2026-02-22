@@ -1,19 +1,39 @@
-import { render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { Workflow, WorkflowStatus } from "../../../src/types/workflow";
 import type { Form } from "../../../src/types/form";
 import EditWorkflowInformationForm from "../../../src/components/workflow/edit-workflow-information-form";
-import { it, expect } from "vitest";
+import { it, expect, vi, describe } from "vitest";
 import "@testing-library/jest-dom";
+import userEvent, { UserEvent } from "@testing-library/user-event";
 
-const mockTriggerForm: Form = {
-  id: 12,
-  title: "Trigger Form",
-  description: "Form for triggering workflow",
-  schema: {},
-  created_at: "2026-02-20T10:00:00.000Z",
-  updated_at: "2026-02-20T10:00:00.000Z",
-  nodeId: "trigger-node-1",
-};
+const mockAllForms: Form[] = [
+  {
+    id: 1,
+    title: "Trigger Form",
+    description: "Form for triggering workflow",
+    schema: {},
+    created_at: "2026-02-20T10:00:00.000Z",
+    updated_at: "2026-02-20T10:00:00.000Z",
+    nodeId: "trigger-node-1",
+  },
+  {
+    id: 2,
+    title: "Trigger Form 2",
+    description: "Form for triggering workflow 2",
+    schema: {},
+    created_at: "2026-02-20T10:00:00.000Z",
+    updated_at: "2026-02-20T10:00:00.000Z",
+    nodeId: "trigger-node-2",
+  },
+];
+
+const mockTriggerForm: Form = mockAllForms[0];
 
 const mockWorkflow: Workflow = {
   id: 1,
@@ -39,49 +59,183 @@ const workflowFactory = (status: WorkflowStatus = "active"): Workflow => {
   };
 };
 
-const renderEditForm = (workflow: Workflow): void => {
-  render(<EditWorkflowInformationForm workflow={workflow} />);
+const renderEditForm = (
+  workflow: Workflow,
+  onSave?: (workflow: Workflow) => void,
+  onCancel?: () => void,
+  forms: Form[] = mockAllForms,
+): void => {
+  render(
+    <EditWorkflowInformationForm
+      workflow={workflow}
+      forms={forms}
+      onSave={onSave}
+      onCancel={onCancel}
+    />,
+  );
 };
 
-const findTextInputWithValue = (value?: string): HTMLElement | null => {
-  return screen.getByRole("textbox", { name: value });
-};
-
-const findSelectionWithValue = (
-  value?: string | number,
-): HTMLElement | null => {
+const findSelectionWithValue = (value: string | number): HTMLSelectElement => {
   return screen.getByRole("combobox", { name: `${value}` });
 };
 
-it("should render input for edit workflow name", () => {
-  // arrange
-  const workflow = workflowFactory();
+const findInputWithValue = (value: string) => {
+  return screen.getByDisplayValue(value);
+};
 
-  // act
-  renderEditForm(workflow);
+const findCancelButton = () => {
+  return screen.getByRole("button", { name: "انصراف" });
+};
 
-  // assert
-  expect(findTextInputWithValue(workflow.name)).toBeInTheDocument();
+const findElementByTestId = (testId: string) => {
+  return screen.findByTestId(testId);
+};
+
+const clickCancelButton = async () => {
+  const button = findCancelButton();
+
+  if (!button) throw new Error("Cancel button not found in the document");
+
+  await act(async () => {
+    await userEvent.click(button);
+  });
+};
+
+const findSaveButton = () => {
+  return screen.getByRole("button", { name: "ذخیره" });
+};
+
+const clickSaveButton = async () => {
+  const button = findSaveButton();
+
+  if (!button) throw new Error("Save button not found in the document");
+
+  await act(async () => {
+    await userEvent.click(button);
+  });
+};
+
+const createMockPointerEvent = (type: string, props: any = {}) => {
+  const event = new Event(type, { bubbles: true });
+  Object.assign(event, {
+    ctrlKey: props.ctrlKey || false,
+    button: props.button || 0,
+    target: props.target || null,
+  });
+  return event;
+};
+
+describe("Form Render Assertions", () => {
+  it("should render input for edit workflow name", () => {
+    // arrange
+    const workflow = workflowFactory();
+
+    // act
+    renderEditForm(workflow);
+
+    // assert
+    expect(findInputWithValue(workflow.name)).toBeInTheDocument();
+  });
+
+  it("should render input for edit workflow description", () => {
+    // arrange
+    const workflow = workflowFactory();
+
+    // act
+    renderEditForm(workflow);
+
+    // assert
+    expect(findInputWithValue(workflow.description)).toBeInTheDocument();
+  });
+
+  it("should render selection for edit workflow trigger form", () => {
+    // arrange
+    const workflow = workflowFactory();
+
+    // act
+    renderEditForm(workflow);
+
+    // assert
+    expect(
+      findSelectionWithValue(workflow.trigger_form.id),
+    ).toBeInTheDocument();
+  });
+
+  it("should render selection for edit workflow status", () => {
+    // arrange
+    const workflow = workflowFactory();
+
+    // act
+    renderEditForm(workflow);
+
+    // assert
+    expect(findSelectionWithValue(workflow.status)).toBeInTheDocument();
+  });
 });
 
-it("should render input for edit workflow description", () => {
-  // arrange
-  const workflow = workflowFactory();
+describe("Form Action Assertions", () => {
+  let user: UserEvent;
 
-  // act
-  renderEditForm(workflow);
+  beforeEach(() => {
+    user = userEvent.setup();
+    vi.clearAllMocks();
+  });
 
-  // assert
-  expect(findTextInputWithValue(workflow.description)).toBeInTheDocument();
-});
+  const changeInputValue = async (input: HTMLElement, value: string) => {
+    await user.clear(input);
+    await user.type(input, value);
+  };
 
-it("should render selection for edit workflow trigger form", () => {
-  // arrange
-  const workflow = workflowFactory();
+  it("should call onCancel property on click cancel button", async () => {
+    // arrange
+    const workflow = workflowFactory();
+    const onSave = vi.fn();
+    const onCancel = vi.fn();
 
-  // act
-  renderEditForm(workflow);
+    // act
+    renderEditForm(workflow, onSave, onCancel);
+    await clickCancelButton();
 
-  // assert
-  expect(findSelectionWithValue(workflow.trigger_form.id)).toBeInTheDocument();
+    // assert
+    expect(onCancel).toBeCalled();
+  });
+
+  it("should evolve modified workflow's name on click save button", async () => {
+    // arrange
+    const workflow = workflowFactory();
+    const onSave = vi.fn();
+
+    // act
+    renderEditForm(workflow, onSave);
+    const nameInput = findInputWithValue(workflow.name);
+    await changeInputValue(nameInput, "testing name modification action");
+    await clickSaveButton();
+
+    // assert
+    expect(onSave).toBeCalledWith({
+      ...workflow,
+      name: "testing name modification action",
+    });
+  });
+
+  it("should evolve modified workflow's description on click save button", async () => {
+    // arrange
+    const workflow = workflowFactory();
+    const onSave = vi.fn();
+
+    // act
+    renderEditForm(workflow, onSave);
+    const descriptionInput = findInputWithValue(workflow.description ?? "");
+    await changeInputValue(
+      descriptionInput,
+      "testing description modification action",
+    );
+    await clickSaveButton();
+
+    // assert
+    expect(onSave).toBeCalledWith({
+      ...workflow,
+      description: "testing description modification action",
+    });
+  });
 });

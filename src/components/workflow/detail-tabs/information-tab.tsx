@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PencilIcon } from "lucide-react";
 import type { Workflow } from "../../../../src/types/workflow";
+import EditWorkflowInformationForm from "../edit-workflow-information-form";
+import type { Form as FormType } from "@/types/form";
+import { supabaseService } from "@/services/supabase";
 
 interface InformationTabProps {
   workflow: Workflow;
@@ -17,20 +20,24 @@ const statusMap: Record<string, string> = {
 
 export function InformationTab({ workflow }: InformationTabProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [forms, setForms] = useState<FormType[]>([]);
+
+  useEffect(() => {
+    fetchForms();
+  }, []);
+
+  const fetchForms = async () => {
+    const forms = await supabaseService.getForms();
+
+    setForms(forms);
+  };
 
   const handleEditClick = () => {
     setIsEditing(true);
   };
 
   if (isEditing) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>ویرایش مشخصات گردش کار</CardTitle>
-        </CardHeader>
-        <CardContent></CardContent>
-      </Card>
-    );
+    return <EditWorkflowInformationForm workflow={workflow} forms={forms} />;
   }
 
   return (
@@ -66,7 +73,7 @@ export function InformationTab({ workflow }: InformationTabProps) {
 
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
-              فرم ماشه
+            فرم ماشه
           </h3>
           <p className="text-base">
             {workflow.trigger_form.title || "فرم ماشه ندارد"}
