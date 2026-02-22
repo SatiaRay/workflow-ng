@@ -21,6 +21,7 @@ const statusMap: Record<string, string> = {
 export function InformationTab({ workflow }: InformationTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [forms, setForms] = useState<FormType[]>([]);
+  const [workflowData, setWorkflowData]  = useState<Workflow>(workflow)
 
   useEffect(() => {
     fetchForms();
@@ -36,8 +37,14 @@ export function InformationTab({ workflow }: InformationTabProps) {
     setIsEditing(true);
   };
 
+  const handleSave = (updatedData: Workflow) => {
+    setIsEditing(false)
+
+    setWorkflowData(updatedData)
+  }
+
   if (isEditing) {
-    return <EditWorkflowInformationForm workflow={workflow} forms={forms} />;
+    return <EditWorkflowInformationForm workflow={workflow} forms={forms} onSave={handleSave} onCancel={() => setIsEditing(false)}/>;
   }
 
   return (
@@ -59,7 +66,7 @@ export function InformationTab({ workflow }: InformationTabProps) {
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             نام گردش کار
           </h3>
-          <p className="text-base">{workflow.name}</p>
+          <p className="text-base">{workflowData.name}</p>
         </div>
 
         <div>
@@ -67,7 +74,7 @@ export function InformationTab({ workflow }: InformationTabProps) {
             توضیحات
           </h3>
           <p className="text-base">
-            {workflow.description || "توضیحاتی ثبت نشده است"}
+            {workflowData.description || "توضیحاتی ثبت نشده است"}
           </p>
         </div>
 
@@ -76,7 +83,7 @@ export function InformationTab({ workflow }: InformationTabProps) {
             فرم ماشه
           </h3>
           <p className="text-base">
-            {workflow.trigger_form.title || "فرم ماشه ندارد"}
+            {workflowData.trigger_form.title || "فرم ماشه ندارد"}
           </p>
         </div>
 
@@ -86,14 +93,14 @@ export function InformationTab({ workflow }: InformationTabProps) {
           </h3>
           <Badge
             variant={
-              workflow.status === "active"
+              workflowData.status === "active"
                 ? "default"
-                : workflow.status === "inactive"
+                : workflowData.status === "inactive"
                   ? "secondary"
                   : "outline"
             }
           >
-            {statusMap[workflow.status]}
+            {statusMap[workflowData.status]}
           </Badge>
         </div>
 
@@ -103,7 +110,7 @@ export function InformationTab({ workflow }: InformationTabProps) {
               تاریخ ایجاد
             </h3>
             <p className="text-base">
-              {new Date(workflow.created_at).toLocaleDateString("fa-IR")}
+              {new Date(workflowData.created_at).toLocaleDateString("fa-IR")}
             </p>
           </div>
           <div>
@@ -111,7 +118,7 @@ export function InformationTab({ workflow }: InformationTabProps) {
               آخرین بروزرسانی
             </h3>
             <p className="text-base">
-              {new Date(workflow.updated_at).toLocaleDateString("fa-IR")}
+              {new Date(workflowData.updated_at).toLocaleDateString("fa-IR")}
             </p>
           </div>
         </div>

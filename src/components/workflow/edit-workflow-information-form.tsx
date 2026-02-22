@@ -19,6 +19,8 @@ import {
 import { Label } from "@/components/ui/label";
 import type { Workflow } from "../../../src/types/workflow";
 import type { Form } from "../../../src/types/form";
+import { supabaseService } from "@/services/supabase";
+import { Spinner } from "../ui/spinner";
 
 interface EditWorkflowInformationFormProps {
   workflow: Workflow;
@@ -46,6 +48,8 @@ export default function EditWorkflowInformationForm({
     status: workflow.status,
   });
 
+  const [isUpdating, setIsUpdating] = useState<boolean>(false)
+
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, name: e.target.value }));
   };
@@ -64,7 +68,7 @@ export default function EditWorkflowInformationForm({
     setFormData((prev) => ({ ...prev, status: value as Workflow["status"] }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (onSave) {
@@ -79,6 +83,10 @@ export default function EditWorkflowInformationForm({
         trigger_form: selectedForm || workflow.trigger_form,
         status: formData.status as Workflow["status"],
       };
+
+      setIsUpdating(true)
+
+      await supabaseService.updateWorkflow(workflow.id, updatedWorkflow)
 
       onSave(updatedWorkflow);
     }
@@ -169,7 +177,9 @@ export default function EditWorkflowInformationForm({
           <Button type="button" variant="outline" onClick={handleCancel}>
             انصراف
           </Button>
-          <Button type="submit">ذخیره</Button>
+          <Button type="submit">
+            {isUpdating ? <Spinner/> : 'ذخیره'}
+          </Button>
         </CardFooter>
       </form>
     </Card>

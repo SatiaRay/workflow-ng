@@ -1,35 +1,36 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import type { Workflow, WorkflowStatus } from "../../../../src/types/workflow";
 import type { Form } from "../../../../src/types/form";
 import { InformationTab } from "../../../../src/components/workflow/detail-tabs/information-tab";
 import { act } from "react";
 import userEvent from "@testing-library/user-event";
-import { it, expect, vi } from 'vitest';
-import '@testing-library/jest-dom';
-import { supabaseService } from '../../../../src/services/supabase.service';
+import { it, expect, vi } from "vitest";
+import "@testing-library/jest-dom";
+import { supabaseService } from "../../../../src/services/supabase.service";
 
-vi.mock('@/services/supabase', () => ({
+vi.mock("@/services/supabase", () => ({
   supabaseService: {
-    getForms: vi.fn()
-  }
+    getForms: vi.fn(),
+    updateWorkflow: vi.fn(),
+  },
 }));
 
 (supabaseService.getForms as any).mockResolvedValue([
-      { 
-        id: '1', 
-        title: 'Form 1', // This is what the component expects
-        name: 'Form 1', // Include both if needed
-        fields: [],
-        created_at: new Date().toISOString()
-      },
-      { 
-        id: '2', 
-        title: 'Form 2',
-        name: 'Form 2', 
-        fields: [],
-        created_at: new Date().toISOString()
-      }
-    ]);
+  {
+    id: "1",
+    title: "Form 1", // This is what the component expects
+    name: "Form 1", // Include both if needed
+    fields: [],
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    title: "Form 2",
+    name: "Form 2",
+    fields: [],
+    created_at: new Date().toISOString(),
+  },
+]);
 
 const mockTriggerForm: Form = {
   id: 12,
@@ -81,6 +82,34 @@ const clickEditButton = async () => {
       await userEvent.click(button);
     });
   else throw new Error("Edit button not in the document");
+};
+
+const findCancelEditButton = (): HTMLElement | null => {
+  return screen.getByRole("button", { name: "انصراف" });
+};
+
+const clickCancelEditButton = async () => {
+  const button = findCancelEditButton();
+
+  if (button)
+    await act(async () => {
+      await userEvent.click(button);
+    });
+  else throw new Error("Cancel edit button not in the document");
+};
+
+const findSaveButton = (): HTMLElement | null => {
+  return screen.getByRole("button", { name: "ذخیره" });
+};
+
+const clickSaveButton = async () => {
+  const button = findSaveButton();
+
+  if (button)
+    await act(async () => {
+      await userEvent.click(button);
+    });
+  else throw new Error("Save button not in the document");
 };
 
 it("should render workflow name", () => {
@@ -172,3 +201,31 @@ it("should render workflow trigger form name", () => {
   // assert
   expect(screen.getByText(workflow.trigger_form.title)).toBeInTheDocument();
 });
+
+it("should hide edit workflow form after click on cancel button", async () => {
+  // arrange
+  const workflow = workflowFactory();
+
+  // act
+  renderInformationTab(workflow);
+  await clickEditButton();
+  const formTitle = screen.getByText("ویرایش مشخصات گردش کار");
+  await clickCancelEditButton();
+
+  // assert
+  expect(formTitle).not.toBeInTheDocument();
+});
+
+it("should hid edit workflow form on click save button", async () => {
+  // arrange
+  const workflow = workflowFactory();
+
+  // act
+  renderInformationTab(workflow);
+  await clickEditButton();
+  const formTitle = screen.getByText("ویرایش مشخصات گردش کار");
+  await clickSaveButton();
+
+  // assert
+  expect(formTitle).not.toBeInTheDocument();
+})

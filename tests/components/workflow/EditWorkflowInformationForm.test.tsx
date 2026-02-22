@@ -11,6 +11,14 @@ import EditWorkflowInformationForm from "../../../src/components/workflow/edit-w
 import { it, expect, vi, describe } from "vitest";
 import "@testing-library/jest-dom";
 import userEvent, { UserEvent } from "@testing-library/user-event";
+import { supabaseService } from "../../../src/services/supabase.service";
+
+vi.mock("@/services/supabase", () => ({
+  supabaseService: {
+    getForms: vi.fn(),
+    updateWorkflow: vi.fn(),
+  },
+}));
 
 const mockAllForms: Form[] = [
   {
@@ -215,6 +223,23 @@ describe("Form Action Assertions", () => {
     expect(onSave).toBeCalledWith({
       ...workflow,
       name: "testing name modification action",
+    });
+  });
+
+  it("should submit modification on click save button", async () => {
+    // arrange
+    const workflow = workflowFactory();
+    const onSave = vi.fn();
+
+    // act
+    renderEditForm(workflow, onSave);
+    const nameInput = findInputWithValue(workflow.name);
+    await changeInputValue(nameInput, "testing name modification action");
+    await clickSaveButton();
+
+    // assert
+    await waitFor(() => {
+      expect(supabaseService.updateWorkflow).toHaveBeenCalledWith(workflow.id, {...workflow, name: "testing name modification action"});
     });
   });
 
