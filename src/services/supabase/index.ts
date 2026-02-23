@@ -45,6 +45,7 @@ export class SupabaseService {
   getWorkflows = workflowService.getWorkflows.bind(workflowService);
   getWorkflow = workflowService.getWorkflow.bind(workflowService);
   getWorkflowStats = workflowService.getWorkflowStats.bind(workflowService);
+  getWorkflowForms = workflowService.getWorkflowForms.bind(workflowService);
   createWorkflow = workflowService.createWorkflow.bind(workflowService);
   updateWorkflow = workflowService.updateWorkflow.bind(workflowService);
   deleteWorkflow = workflowService.deleteWorkflow.bind(workflowService);

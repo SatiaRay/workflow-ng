@@ -318,7 +318,7 @@ const DetailTabs = () => {
 
       <DiagramTab />
 
-      <FormsTab />
+      <FormsTab workflow={workflow}/>
     </Tabs>
   );
 };

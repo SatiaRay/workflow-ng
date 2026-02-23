@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,81 +7,196 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TabsContent } from "@/components/ui/tabs";
 import {
-  FileText,
-} from "lucide-react";
-import { formatDateTime } from "@/lib/utils";
-import type { Form } from "@/types/form";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { supabaseService } from "../../../../src/services/supabase.service";
+import type { Workflow } from "../../../../src/types/workflow";
+import type { Form } from "../../../../src/types/form";
+import { Link } from "react-router-dom";
 
-const FormsTab = () => {
-  const navigate = useNavigate();
-  const [forms, setForms] = useState<Form[] | []>([]);
+interface FormsTabProps {
+  workflow: Workflow;
+}
+
+export default function FormsTab({ workflow }: FormsTabProps) {
+  const [forms, setForms] = useState<Form[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [formToDelete, setFormToDelete] = useState<Form | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    loadForms();
+  }, [workflow.id]);
+
+  const loadForms = async () => {
+    setLoading(true);
+    try {
+      if (workflow && workflow.id) {
+        const workflowForms = await supabaseService.getWorkflowForms(
+          workflow.id,
+        );
+        setForms(workflowForms || []);
+      }
+    } catch (error) {
+      console.error("Error loading forms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (form: Form) => {
+    setFormToDelete(form);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!formToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await supabaseService.deleteForm(formToDelete.id);
+      setForms(forms.filter((f) => f.id !== formToDelete.id));
+      setFormToDelete(null);
+    } catch (error) {
+      console.error("Error deleting form:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setFormToDelete(null);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fa-IR");
+  };
 
   return (
-    <TabsContent value="forms" className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>فرم‌های استفاده شده</CardTitle>
-          <CardDescription>
-            فرم‌هایی که در این گردش کار استفاده شده‌اند
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {forms.length === 0 ? (
-            <div className="text-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">فرمی استفاده نشده</h3>
-              <p className="text-muted-foreground">
-                در این گردش کار هیچ فرمی استفاده نشده است
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {forms.map((form) => (
-                <Card key={form.id} className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        <div>
-                          <h4 className="font-medium">{form.title}</h4>
-                          <p className="text-xs text-muted-foreground">
-                            شناسه: {form.id}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline">
-                        {form.schema?.fields?.length || 0} فیلد
-                      </Badge>
+    <div className="space-y-6">
+      {/* Header with Create Button */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">
+            فرم‌های گردش کار
+          </h2>
+          <p className="text-muted-foreground">
+            فرم‌های مرتبط با این گردش کار را مدیریت کنید
+          </p>
+        </div>
+        <Link to={`/form/generator?workflow=${workflow.id}`}>
+          <Button>
+            <PlusCircle className="ml-2 h-4 w-4" />
+            ایجاد فرم جدید
+          </Button>
+        </Link>
+      </div>
+
+      {/* Forms List */}
+      {loading ? (
+        <div className="text-center py-8">در حال بارگذاری...</div>
+      ) : forms.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-muted-foreground mb-4">
+              هنوز هیچ فرمی برای این گردش کار ایجاد نشده است
+            </p>
+            <Link to={`/form/generator?workflow=${workflow.id}`}>
+              <Button variant="outline">
+                <PlusCircle className="ml-2 h-4 w-4" />
+                ایجاد اولین فرم
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {forms.map((form) => (
+            <Card key={form.id}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg">{form.title}</h3>
+                      {form.id === workflow.trigger_form?.id && (
+                        <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
+                          فرم ماشه
+                        </span>
+                      )}
                     </div>
                     {form.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                      <p className="text-sm text-muted-foreground">
                         {form.description}
                       </p>
                     )}
-                    <div className="mt-3 text-xs text-muted-foreground">
-                      ایجاد: {formatDateTime(form.created_at)}
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>
+                        آخرین بروزرسانی: {formatDate(form.updated_at)}
+                      </span>
+                      {form.nodeId && <span>گره: {form.nodeId}</span>}
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2 mr-4">
+                    <Link to={`/form/edit/${form.id}`}>
+                      <Button variant="ghost" size="icon" title="ویرایش">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </Link>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-3"
-                      onClick={() => navigate(`/forms/${form.id}`)}
+                      variant="ghost"
+                      size="icon"
+                      title="حذف"
+                      aria-label="حذف"
+                      onClick={() => handleDeleteClick(form)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
-                      مشاهده فرم
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </TabsContent>
-  );
-};
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-export default FormsTab;
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!formToDelete}
+        onOpenChange={(open) => !open && handleDeleteCancel()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              آیا از حذف فرم "{formToDelete?.title}" مطمئن هستید؟
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              این اقدام غیرقابل بازگشت است. فرم به طور کامل از سیستم حذف خواهد
+              شد و تمام داده‌های مرتبط با آن از بین خواهد رفت.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel}>
+              انصراف
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "در حال حذف..." : "بله، حذف شود"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

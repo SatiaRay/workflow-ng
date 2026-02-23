@@ -1,4 +1,5 @@
 // services/workflow-service.ts
+import type { Form } from "@/types/form";
 import { BaseSupabaseService } from "./base-service";
 import type { Workflow, WorkflowStatus } from "@/types/workflow";
 
@@ -36,19 +37,22 @@ export class WorkflowService extends BaseSupabaseService {
   // Helper to transform DB response to domain Workflow type
   private transformToWorkflow(dbWorkflow: WorkflowDbResponse): Workflow {
     // Parse schema if it's stored as JSON string
-    const schema = typeof dbWorkflow.schema === 'string' 
-      ? JSON.parse(dbWorkflow.schema) 
-      : dbWorkflow.schema;
+    const schema =
+      typeof dbWorkflow.schema === "string"
+        ? JSON.parse(dbWorkflow.schema)
+        : dbWorkflow.schema;
 
     // Transform trigger_form to match the Form type from @/types/form
-    const trigger_form = dbWorkflow.trigger_form ? {
-      id: dbWorkflow.trigger_form.id,
-      title: dbWorkflow.trigger_form.title,
-      // Add other required Form fields with defaults or from related data
-      schema: {}, // You might need to fetch this separately
-      created_at: dbWorkflow.created_at,
-      description: null,
-    } : undefined;
+    const trigger_form = dbWorkflow.trigger_form
+      ? {
+          id: dbWorkflow.trigger_form.id,
+          title: dbWorkflow.trigger_form.title,
+          // Add other required Form fields with defaults or from related data
+          schema: {}, // You might need to fetch this separately
+          created_at: dbWorkflow.created_at,
+          description: null,
+        }
+      : undefined;
 
     return {
       id: dbWorkflow.id,
@@ -79,18 +83,16 @@ export class WorkflowService extends BaseSupabaseService {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      let query = this.supabase
-        .from("workflows")
-        .select(
-          `
+      let query = this.supabase.from("workflows").select(
+        `
           *,
           trigger_form:forms!workflows_trigger_form_id_fkey (
             id,
             title
           )
         `,
-          { count: "exact" },
-        );
+        { count: "exact" },
+      );
 
       // Add status filter if provided
       if (status && status !== "all") {
@@ -108,8 +110,8 @@ export class WorkflowService extends BaseSupabaseService {
       }
 
       // Transform each workflow to match the domain type
-      const transformedData = (data || []).map(item => 
-        this.transformToWorkflow(item as WorkflowDbResponse)
+      const transformedData = (data || []).map((item) =>
+        this.transformToWorkflow(item as WorkflowDbResponse),
       );
 
       return {
@@ -204,6 +206,12 @@ export class WorkflowService extends BaseSupabaseService {
     }
   }
 
+  async getWorkflowForms(): Promise<Form[]> {
+    return new Promise(() => {
+      throw new Error("getWorkflowForms not implemented !");
+    });
+  }
+
   async createWorkflow(workflowData: {
     name: string;
     description?: string;
@@ -259,11 +267,14 @@ export class WorkflowService extends BaseSupabaseService {
       };
 
       if (updates.name !== undefined) dbUpdates.name = updates.name;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.description !== undefined)
+        dbUpdates.description = updates.description;
       if (updates.schema !== undefined) dbUpdates.schema = updates.schema;
       if (updates.status !== undefined) dbUpdates.status = updates.status;
-      if (updates.active_instances !== undefined) dbUpdates.active_instances = updates.active_instances;
-      if (updates.completed_instances !== undefined) dbUpdates.completed_instances = updates.completed_instances;
+      if (updates.active_instances !== undefined)
+        dbUpdates.active_instances = updates.active_instances;
+      if (updates.completed_instances !== undefined)
+        dbUpdates.completed_instances = updates.completed_instances;
 
       const { data, error } = await this.supabase
         .from("workflows")
