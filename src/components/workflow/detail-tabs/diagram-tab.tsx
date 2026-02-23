@@ -29,10 +29,14 @@ const DiagramTab = () => {
 
   const handleSave = async () => {
     setSaveError(null);
-    const success = await saveWorkflow({ schema });
-    
-    if (success) {
-      setHasChanges(false);
+    try {
+      const success = await saveWorkflow({ schema });
+      
+      if (success) {
+        setHasChanges(false);
+      }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'خطا در ذخیره سازی');
     }
   };
 
