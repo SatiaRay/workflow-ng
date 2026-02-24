@@ -16,6 +16,7 @@ import { supabaseService } from "../../../src/services/supabase.service";
 vi.mock("@/services/supabase", () => ({
   supabaseService: {
     getForms: vi.fn(),
+    getWorkflowForms: vi.fn(),
     updateWorkflow: vi.fn(),
   },
 }));
@@ -123,15 +124,29 @@ const clickSaveButton = async () => {
   });
 };
 
-const createMockPointerEvent = (type: string, props: any = {}) => {
-  const event = new Event(type, { bubbles: true });
-  Object.assign(event, {
-    ctrlKey: props.ctrlKey || false,
-    button: props.button || 0,
-    target: props.target || null,
+describe("Server trade-off Assertions", () => {
+  it("should fetch associated forms to the workflow for fill select trigger form options", () => {
+    // arrange
+    const workflow = workflowFactory();
+
+    // act
+    renderEditForm(workflow);
+
+    // assert
+    expect(supabaseService.getWorkflowForms).toHaveBeenCalled();
   });
-  return event;
-};
+
+  it("should not fetch all forms for fill select trigger form options", () => {
+    // arrange
+    const workflow = workflowFactory();
+
+    // act
+    renderEditForm(workflow);
+
+    // assert
+    expect(supabaseService.getForms).not.toHaveBeenCalled();
+  });
+});
 
 describe("Form Render Assertions", () => {
   it("should render input for edit workflow name", () => {
@@ -199,6 +214,7 @@ describe("Form Action Assertions", () => {
     const workflow = workflowFactory();
     const onSave = vi.fn();
     const onCancel = vi.fn();
+    (supabaseService.getWorkflowForms as any).mockResolvedValue(mockAllForms);
 
     // act
     renderEditForm(workflow, onSave, onCancel);
@@ -239,7 +255,10 @@ describe("Form Action Assertions", () => {
 
     // assert
     await waitFor(() => {
-      expect(supabaseService.updateWorkflow).toHaveBeenCalledWith(workflow.id, {...workflow, name: "testing name modification action"});
+      expect(supabaseService.updateWorkflow).toHaveBeenCalledWith(workflow.id, {
+        ...workflow,
+        name: "testing name modification action",
+      });
     });
   });
 

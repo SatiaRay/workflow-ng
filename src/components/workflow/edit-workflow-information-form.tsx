@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +24,6 @@ import { Spinner } from "../ui/spinner";
 
 interface EditWorkflowInformationFormProps {
   workflow: Workflow;
-  forms: Form[];
   onSave?: (workflow: Workflow) => void;
   onCancel?: () => void;
 }
@@ -37,7 +36,6 @@ const statusMap: Record<string, string> = {
 
 export default function EditWorkflowInformationForm({
   workflow,
-  forms,
   onSave,
   onCancel,
 }: EditWorkflowInformationFormProps) {
@@ -48,7 +46,18 @@ export default function EditWorkflowInformationForm({
     status: workflow.status,
   });
 
-  const [isUpdating, setIsUpdating] = useState<boolean>(false)
+  const [forms, setForms] = useState<Form[]>([]);
+
+  useEffect(() => {
+    fetchForms();
+  }, []);
+
+  const fetchForms = async () => {
+    const forms = await supabaseService.getWorkflowForms(workflow.id);
+    setForms(forms);
+  };
+
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, name: e.target.value }));
@@ -84,9 +93,9 @@ export default function EditWorkflowInformationForm({
         status: formData.status as Workflow["status"],
       };
 
-      setIsUpdating(true)
+      setIsUpdating(true);
 
-      await supabaseService.updateWorkflow(workflow.id, updatedWorkflow)
+      await supabaseService.updateWorkflow(workflow.id, updatedWorkflow);
 
       onSave(updatedWorkflow);
     }
@@ -177,9 +186,7 @@ export default function EditWorkflowInformationForm({
           <Button type="button" variant="outline" onClick={handleCancel}>
             انصراف
           </Button>
-          <Button type="submit">
-            {isUpdating ? <Spinner/> : 'ذخیره'}
-          </Button>
+          <Button type="submit">{isUpdating ? <Spinner /> : "ذخیره"}</Button>
         </CardFooter>
       </form>
     </Card>

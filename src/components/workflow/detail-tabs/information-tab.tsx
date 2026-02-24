@@ -21,17 +21,7 @@ const statusMap: Record<string, string> = {
 
 export function InformationTab({ workflow }: InformationTabProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [forms, setForms] = useState<FormType[]>([]);
   const [workflowData, setWorkflowData] = useState<Workflow>(workflow);
-
-  useEffect(() => {
-    fetchForms();
-  }, []);
-
-  const fetchForms = async () => {
-    const forms = await supabaseService.getForms();
-    setForms(forms);
-  };
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -46,7 +36,6 @@ export function InformationTab({ workflow }: InformationTabProps) {
     return (
       <EditWorkflowInformationForm
         workflow={workflow}
-        forms={forms}
         onSave={handleSave}
         onCancel={() => setIsEditing(false)}
       />

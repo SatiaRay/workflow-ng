@@ -11,12 +11,12 @@ import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/services/supabase", () => ({
   supabaseService: {
-    getForms: vi.fn(),
     updateWorkflow: vi.fn(),
+    getWorkflowForms: vi.fn()
   },
 }));
 
-(supabaseService.getForms as any).mockResolvedValue([
+(supabaseService.getWorkflowForms as any).mockResolvedValue([
   {
     id: "1",
     title: "Form 1", // This is what the component expects
