@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { it, expect, vi } from "vitest";
 import "@testing-library/jest-dom";
 import { supabaseService } from "../../../../src/services/supabase.service";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/services/supabase", () => ({
   supabaseService: {
@@ -67,7 +68,11 @@ const workflowFactory = (status: WorkflowStatus = "active"): Workflow => {
 };
 
 const renderInformationTab = (workflow: Workflow): void => {
-  render(<InformationTab workflow={workflow} />);
+  render(
+    <MemoryRouter>
+      <InformationTab workflow={workflow} />
+    </MemoryRouter>,
+  );
 };
 
 const findEditButton = (): HTMLElement | null => {
@@ -110,6 +115,15 @@ const clickSaveButton = async () => {
       await userEvent.click(button);
     });
   else throw new Error("Save button not in the document");
+};
+
+const findLinkByName = (name: string) => {
+  return screen.getByRole("link", { name: name });
+};
+
+const findLinkByHref = (href: string) => {
+  const links = screen.getAllByRole("link");
+  return links.find((link) => link.getAttribute("href") === href);
 };
 
 it("should render workflow name", () => {
@@ -199,7 +213,51 @@ it("should render workflow trigger form name", () => {
   renderInformationTab(workflow);
 
   // assert
-  expect(screen.getByText(workflow.trigger_form.title)).toBeInTheDocument();
+  expect(
+    screen.getByText(workflow.trigger_form?.title ?? ""),
+  ).toBeInTheDocument();
+});
+
+it("should render warning message when workflow trigger form is null", () => {
+  // arrange
+  let workflow = workflowFactory();
+  workflow = { ...workflow, trigger_form: null };
+
+  // act
+  renderInformationTab(workflow);
+
+  // assert
+  expect(
+    screen.getByText("این گردش کار فرم ماشه ندارد"),
+  ).toBeInTheDocument();
+});
+
+it("should render create new form link for the workflow as trigger form", () => {
+  // arrange
+  let workflow = workflowFactory();
+  workflow = { ...workflow, trigger_form: null };
+
+  // act
+  renderInformationTab(workflow);
+
+  // assert
+  expect(findLinkByName("ایجاد فرم ماشه")).toBeInTheDocument();
+});
+
+it("should render create new form link with correct href for the workflow as trigger form", () => {
+  // arrange
+  let workflow = workflowFactory();
+  workflow = { ...workflow, trigger_form: null };
+
+  // act
+  renderInformationTab(workflow);
+
+  // assert
+  const createTriggerFormLink = findLinkByName("ایجاد فرم ماشه");
+  expect(createTriggerFormLink).toHaveAttribute(
+    "href",
+    `/form/generator?workflow=${workflow.id}&type_trigger_form=true`,
+  );
 });
 
 it("should hide edit workflow form after click on cancel button", async () => {
@@ -228,4 +286,4 @@ it("should hid edit workflow form on click save button", async () => {
 
   // assert
   expect(formTitle).not.toBeInTheDocument();
-})
+});

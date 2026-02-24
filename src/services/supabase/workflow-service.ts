@@ -254,7 +254,6 @@ export class WorkflowService extends BaseSupabaseService {
   async createWorkflow(workflowData: {
     name: string;
     description?: string;
-    trigger_form_id: number;
     schema?: any;
   }): Promise<Workflow> {
     try {
@@ -265,7 +264,6 @@ export class WorkflowService extends BaseSupabaseService {
           {
             name: workflowData.name,
             description: workflowData.description,
-            trigger_form_id: workflowData.trigger_form_id,
             schema: workflowData.schema || {
               edges: [],
               nodes: [],
@@ -287,24 +285,6 @@ export class WorkflowService extends BaseSupabaseService {
       if (workflowError) {
         console.error("Error creating workflow:", workflowError);
         throw workflowError;
-      }
-
-      // Add the trigger form to workflow_forms junction table
-      const { error: relationError } = await this.supabase
-        .from("workflow_forms")
-        .insert([
-          {
-            workflow_id: workflow.id,
-            form_id: workflowData.trigger_form_id,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-
-      if (relationError) {
-        console.error("Error creating workflow-form relation:", relationError);
-        // Optionally, you might want to delete the created workflow if relation creation fails
-        await this.supabase.from("workflows").delete().eq("id", workflow.id);
-        throw relationError;
       }
 
       return this.transformToWorkflow(workflow as WorkflowDbResponse);

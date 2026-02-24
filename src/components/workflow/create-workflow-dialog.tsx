@@ -66,10 +66,6 @@ export default function CreateWorkflowDialog({
       errors.name = "نام گردش کار الزامی است";
     }
 
-    if (!newWorkflow.trigger_form_id) {
-      errors.trigger_form_id = "انتخاب فرم ماشه الزامی است";
-    }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -84,7 +80,6 @@ export default function CreateWorkflowDialog({
       const workflowData = {
         name: newWorkflow.name,
         description: newWorkflow.description || undefined,
-        trigger_form_id: parseInt(newWorkflow.trigger_form_id),
         schema: { nodes: [], edges: [] },
         status: "draft",
       };
@@ -193,52 +188,7 @@ export default function CreateWorkflowDialog({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="trigger_form_id">
-              فرم ماشه <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={newWorkflow.trigger_form_id}
-              onValueChange={(value) => {
-                setNewWorkflow((prev) => ({ ...prev, trigger_form_id: value }));
-                if (formErrors.trigger_form_id) {
-                  setFormErrors((prev) => {
-                    const newErrors = { ...prev };
-                    delete newErrors.trigger_form_id;
-                    return newErrors;
-                  });
-                }
-              }}
-              disabled={creating}
-            >
-              <SelectTrigger id="trigger_form_id">
-                <FileText className="w-4 h-4 ml-2" />
-                <SelectValue placeholder="انتخاب فرم ماشه" />
-              </SelectTrigger>
-              <SelectContent>
-                {forms.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground">
-                    فرمی موجود نیست
-                  </div>
-                ) : (
-                  forms.map((form) => (
-                    <SelectItem key={form.id} value={form.id.toString()}>
-                      {form.title}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {formErrors.trigger_form_id && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {formErrors.trigger_form_id}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              این فرم هنگام ارسال، گردش کار را فعال می‌کند
-            </p>
-          </div>
+
         </div>
 
         <DialogFooter>

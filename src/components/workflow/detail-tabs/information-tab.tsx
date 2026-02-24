@@ -7,6 +7,7 @@ import type { Workflow } from "../../../../src/types/workflow";
 import EditWorkflowInformationForm from "../edit-workflow-information-form";
 import type { Form as FormType } from "@/types/form";
 import { supabaseService } from "@/services/supabase";
+import { Link } from "react-router-dom";
 
 interface InformationTabProps {
   workflow: Workflow;
@@ -21,7 +22,7 @@ const statusMap: Record<string, string> = {
 export function InformationTab({ workflow }: InformationTabProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [forms, setForms] = useState<FormType[]>([]);
-  const [workflowData, setWorkflowData]  = useState<Workflow>(workflow)
+  const [workflowData, setWorkflowData] = useState<Workflow>(workflow);
 
   useEffect(() => {
     fetchForms();
@@ -29,7 +30,6 @@ export function InformationTab({ workflow }: InformationTabProps) {
 
   const fetchForms = async () => {
     const forms = await supabaseService.getForms();
-
     setForms(forms);
   };
 
@@ -38,13 +38,19 @@ export function InformationTab({ workflow }: InformationTabProps) {
   };
 
   const handleSave = (updatedData: Workflow) => {
-    setIsEditing(false)
-
-    setWorkflowData(updatedData)
-  }
+    setIsEditing(false);
+    setWorkflowData(updatedData);
+  };
 
   if (isEditing) {
-    return <EditWorkflowInformationForm workflow={workflow} forms={forms} onSave={handleSave} onCancel={() => setIsEditing(false)}/>;
+    return (
+      <EditWorkflowInformationForm
+        workflow={workflow}
+        forms={forms}
+        onSave={handleSave}
+        onCancel={() => setIsEditing(false)}
+      />
+    );
   }
 
   return (
@@ -82,9 +88,23 @@ export function InformationTab({ workflow }: InformationTabProps) {
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
             فرم ماشه
           </h3>
-          <p className="text-base">
-            {workflowData.trigger_form.title || "فرم ماشه ندارد"}
-          </p>
+          {workflowData.trigger_form ? (
+            <p className="text-base">{workflowData.trigger_form.title}</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-base text-muted-foreground">
+                این گردش کار فرم ماشه ندارد
+              </p>
+              <Link
+                to={`/form/generator?workflow=${workflowData.id}&type_trigger_form=true`}
+                className="inline-block"
+              >
+                <Button variant="outline" size="sm">
+                  ایجاد فرم ماشه
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
         <div>

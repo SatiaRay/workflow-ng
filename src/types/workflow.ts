@@ -7,7 +7,7 @@ export interface Workflow {
   name: string;
   description?: string;
   schema: WorkflowSchema;
-  trigger_form: Form;
+  trigger_form: Form | null;
   status: WorkflowStatus;
   active_instances: number;
   completed_instances: number;
