@@ -203,6 +203,7 @@ export default function EditForm() {
         toast.success("فرم با موفقیت به‌روزرسانی شد!");
         setOriginalForm(form);
         setHasChanges(false);
+        navigate('/form')
       } else {
         toast.error("به‌روزرسانی فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }

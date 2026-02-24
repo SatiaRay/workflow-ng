@@ -22,11 +22,14 @@ import { Plus, Copy, Download, Save, RefreshCw, Link } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseService } from "@/services/supabase.service";
 import type { FormSchema, FormField } from "@/types/form";
+import { useNavigate } from "react-router-dom";
 
 // Export types for external use
 export type { FormSchema, FormField };
 
 export default function FormGenerator() {
+  const navigate = useNavigate()
+
   const [form, setForm] = useState<FormSchema>({
     title: "نظرسنجی مشتریان",
     description: "یک فرم ساده برای جمع‌آوری نظرات مشتریان",
@@ -133,20 +136,13 @@ export default function FormGenerator() {
         schema: form, // Store the complete form schema directly as JSON
       };
 
-      console.log("Saving form data:", formData);
-
       // Changed from graphqlService.createForm() to supabaseService.createForm()
       const result = await supabaseService.createForm(formData);
 
       if (result) {
         toast.success("فرم با موفقیت در پایگاه داده ذخیره شد!");
 
-        // Optional: Reset form after successful save
-        // setForm({
-        //   title: "",
-        //   description: "",
-        //   fields: []
-        // });
+        navigate('/form')
       } else {
         toast.error("ذخیره فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }
