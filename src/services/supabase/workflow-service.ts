@@ -206,10 +206,49 @@ export class WorkflowService extends BaseSupabaseService {
     }
   }
 
-  async getWorkflowForms(): Promise<Form[]> {
-    return new Promise(() => {
-      throw new Error("getWorkflowForms not implemented !");
-    });
+  async getWorkflowForms(workflowId: number | string): Promise<Form[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from("workflow_forms")
+        .select(
+          `
+        form_id,
+        forms!workflow_forms_form_id_fkey (
+          id,
+          title,
+          description,
+          schema,
+          owner_id,
+          created_at,
+          updated_at
+        )
+      `,
+        )
+        .eq("workflow_id", workflowId);
+
+      if (error) {
+        console.error("Error fetching workflow forms:", error);
+        throw error;
+      }
+
+      // Extract and transform the forms data
+      const forms = (data || [])
+        .map((item) => {
+          const form = item.forms as any;
+          if (!form) return null;
+
+          return {
+            ...form,
+            nodeId: `form_${form.id}`,
+          } as Form;
+        })
+        .filter((form): form is Form => form !== null);
+
+      return forms;
+    } catch (error) {
+      console.error("Error in workflowForms:", error);
+      throw error;
+    }
   }
 
   async createWorkflow(workflowData: {
@@ -219,7 +258,8 @@ export class WorkflowService extends BaseSupabaseService {
     schema?: any;
   }): Promise<Workflow> {
     try {
-      const { data, error } = await this.supabase
+      // Start a transaction to ensure both operations succeed or fail together
+      const { data: workflow, error: workflowError } = await this.supabase
         .from("workflows")
         .insert([
           {
@@ -235,21 +275,39 @@ export class WorkflowService extends BaseSupabaseService {
         ])
         .select(
           `
-          *,
-          trigger_form:forms!workflows_trigger_form_id_fkey (
-            id,
-            title
-          )
-        `,
+        *,
+        trigger_form:forms!workflows_trigger_form_id_fkey (
+          id,
+          title
+        )
+      `,
         )
         .single();
 
-      if (error) {
-        console.error("Error creating workflow:", error);
-        throw error;
+      if (workflowError) {
+        console.error("Error creating workflow:", workflowError);
+        throw workflowError;
       }
 
-      return this.transformToWorkflow(data as WorkflowDbResponse);
+      // Add the trigger form to workflow_forms junction table
+      const { error: relationError } = await this.supabase
+        .from("workflow_forms")
+        .insert([
+          {
+            workflow_id: workflow.id,
+            form_id: workflowData.trigger_form_id,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+      if (relationError) {
+        console.error("Error creating workflow-form relation:", relationError);
+        // Optionally, you might want to delete the created workflow if relation creation fails
+        await this.supabase.from("workflows").delete().eq("id", workflow.id);
+        throw relationError;
+      }
+
+      return this.transformToWorkflow(workflow as WorkflowDbResponse);
     } catch (error) {
       console.error("Error in createWorkflow:", error);
       throw error;
@@ -305,14 +363,41 @@ export class WorkflowService extends BaseSupabaseService {
 
   async deleteWorkflow(id: number): Promise<void> {
     try {
-      const { error } = await this.supabase
+      // First, get all form IDs associated with this workflow
+      const { data: workflowForms, error: formsError } = await this.supabase
+        .from("workflow_forms")
+        .select("form_id")
+        .eq("workflow_id", id);
+
+      if (formsError) {
+        console.error("Error fetching workflow forms:", formsError);
+        throw formsError;
+      }
+
+      const formIds = workflowForms?.map((item) => item.form_id) || [];
+
+      // Delete the workflow (this will cascade to workflow_forms)
+      const { error: deleteError } = await this.supabase
         .from("workflows")
         .delete()
         .eq("id", id);
 
-      if (error) {
-        console.error("Error deleting workflow:", error);
-        throw error;
+      if (deleteError) {
+        console.error("Error deleting workflow:", deleteError);
+        throw deleteError;
+      }
+
+      // Delete all associated forms
+      if (formIds.length > 0) {
+        const { error: deleteFormsError } = await this.supabase
+          .from("forms")
+          .delete()
+          .in("id", formIds);
+
+        if (deleteFormsError) {
+          console.error("Error deleting forms:", deleteFormsError);
+          throw deleteFormsError;
+        }
       }
     } catch (error) {
       console.error("Error in deleteWorkflow:", error);

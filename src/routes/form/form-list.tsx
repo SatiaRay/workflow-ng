@@ -42,7 +42,7 @@ export default function FormList() {
     setError(null);
     try {
       // Changed from graphqlService.getForms() to supabaseService.getForms()
-      const data = await supabaseService.getForms();
+      const data = await supabaseService.getNotUsedInWorkflowForms();
       setForms(data);
     } catch (err: any) {
       setError(err.message);

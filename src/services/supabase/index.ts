@@ -22,6 +22,7 @@ export class SupabaseService {
 
   // You can also keep the old method names as aliases
   getForms = formService.getForms.bind(formService);
+  getNotUsedInWorkflowForms = formService.getNotUsedInWorkflowForms.bind(formService);
   getFormById = formService.getFormById.bind(formService);
   createForm = formService.createForm.bind(formService);
   updateForm = formService.updateForm.bind(formService);

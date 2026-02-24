@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   ArrowLeft,
@@ -256,7 +253,7 @@ const DesktopNavigation = ({ items }: { items: NavItem[] }) => {
         <div className="space-y-1">
           <p className="text-sm font-medium truncate">{workflow.name}</p>
           <div>
-            <StatusBadge status={workflow.status}/>
+            <StatusBadge status={workflow.status} />
           </div>
         </div>
       </div>
@@ -314,11 +311,17 @@ const DetailTabs = () => {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-      <InformationTab workflow={workflow}/>
+      <TabsContent value="information">
+        <InformationTab workflow={workflow} />
+      </TabsContent>
 
-      <DiagramTab />
+      <TabsContent value="diagram">
+        <DiagramTab />
+      </TabsContent>
 
-      <FormsTab workflow={workflow}/>
+      <TabsContent value="forms">
+        <FormsTab workflow={workflow} />
+      </TabsContent>
     </Tabs>
   );
 };

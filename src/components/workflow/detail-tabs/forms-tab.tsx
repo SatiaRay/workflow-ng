@@ -141,7 +141,6 @@ export default function FormsTab({ workflow }: FormsTabProps) {
                       <span>
                         آخرین بروزرسانی: {formatDate(form.updated_at)}
                       </span>
-                      {form.nodeId && <span>گره: {form.nodeId}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mr-4">
