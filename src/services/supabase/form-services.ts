@@ -53,6 +53,51 @@ export class FormService extends BaseSupabaseService {
     }
   }
 
+  async getActiveWorkflowsTriggerForms(): Promise<Form[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from("workflows")
+        .select(
+          `
+        trigger_form:forms!workflows_trigger_form_id_fkey (
+          id,
+          title,
+          description,
+          schema,
+          owner_id,
+          created_at,
+          updated_at
+        )
+      `,
+        )
+        .eq("status", "active")
+        .not("trigger_form_id", "is", null);
+
+      if (error) {
+        this.handleError(error, "getActiveWorkflowsTriggerForms");
+        return [];
+      }
+
+      // Extract and deduplicate forms
+      const formsMap = new Map();
+      data?.forEach((item) => {
+        if (item.trigger_form) {
+          formsMap.set(item.trigger_form.id, item.trigger_form);
+        }
+      });
+
+      const forms = Array.from(formsMap.values()).map((form: any) => ({
+        ...form,
+        nodeId: `form_${form.id}`,
+      }));
+
+      return forms;
+    } catch (error) {
+      console.error("Error in getActiveWorkflowsTriggerForms:", error);
+      return [];
+    }
+  }
+
   async getForms(): Promise<Form[]> {
     const { data, error } = await this.supabase
       .from("forms")

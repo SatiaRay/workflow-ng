@@ -9,7 +9,7 @@ import { Form } from "../../../src/types/form";
 
 vi.mock("@/services/supabase", () => ({
   supabaseService: {
-    getTriggerForms: vi.fn(),
+    getActiveWorkflowsTriggerForms: vi.fn(),
     getForms: vi.fn(),
   },
 }));
@@ -130,7 +130,7 @@ describe("Render Tests", () => {
 
   it("should render forms list", async () => {
     // arrange
-    (supabaseService.getTriggerForms as any).mockResolvedValue(
+    (supabaseService.getActiveWorkflowsTriggerForms as any).mockResolvedValue(
       mockTriggerForms,
     );
 
@@ -150,7 +150,7 @@ describe("Render Tests", () => {
 
   it("should have correct link with redirect /tasks when redirect param exists", async () => {
     // arrange
-    (supabaseService.getTriggerForms as any).mockResolvedValue(
+    (supabaseService.getActiveWorkflowsTriggerForms as any).mockResolvedValue(
       mockTriggerForms,
     );
 
@@ -180,7 +180,7 @@ describe("Server Interaction Tests", () => {
     renderCreateNewTaskDialog();
 
     // assert
-    expect(supabaseService.getTriggerForms).toHaveBeenCalled();
+    expect(supabaseService.getActiveWorkflowsTriggerForms).toHaveBeenCalled();
   });
 
   it("should not fetch list of all forms that aren't belongs to a workflow", async () => {

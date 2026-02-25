@@ -33,7 +33,7 @@ export default function CreateNewTaskDialog() {
     setLoading(true);
     setError(null);
     try {
-      const triggerForms = await supabaseService.getTriggerForms();
+      const triggerForms = await supabaseService.getActiveWorkflowsTriggerForms();
       setForms(triggerForms || []);
     } catch (error: any) {
       setError(error.message);

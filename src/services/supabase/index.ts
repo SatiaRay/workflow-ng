@@ -28,6 +28,7 @@ export class SupabaseService {
   updateForm = formService.updateForm.bind(formService);
   deleteForm = formService.deleteForm.bind(formService);
   getTriggerForms = formService.getTriggerForms.bind(formService);
+  getActiveWorkflowsTriggerForms = formService.getActiveWorkflowsTriggerForms.bind(formService);
 
   getFormResponses = responseService.getFormResponses.bind(responseService);
   getResponseById = responseService.getResponseById.bind(responseService);
