@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -33,7 +33,7 @@ import {
   Link,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabaseService } from "@/services/supabase.service";
+import { supabaseService } from "@/services/supabase";
 
 interface FormField {
   id: string;
@@ -59,7 +59,9 @@ interface RelatedResponse {
 
 export default function SubmitForm() {
   const { id } = useParams<{ id: string }>();
+  
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -77,6 +79,9 @@ export default function SubmitForm() {
     Record<string, boolean>
   >({});
 
+  // Get redirect from URL params
+  const redirect = searchParams.get("redirect");
+
   // Fetch form schema and related data
   useEffect(() => {
     if (!id) {
@@ -90,7 +95,6 @@ export default function SubmitForm() {
       setFormNotFound(false);
 
       try {
-        // REPLACED: graphqlService.getFormById → supabaseService.getFormById
         const form = await supabaseService.getFormById(id);
 
         if (!form) {
@@ -162,10 +166,8 @@ export default function SubmitForm() {
 
       try {
         const formId = field.relationConfig!.formId!;
-        // REPLACED: graphqlService.getFormResponses → supabaseService.getFormResponses
         const responses = await supabaseService.getFormResponses(formId);
 
-        // Ensure responses is an array
         if (!Array.isArray(responses)) {
           console.error(
             `Expected array of responses for form ${formId}, got:`,
@@ -180,18 +182,13 @@ export default function SubmitForm() {
 
         const formattedResponses = responses
           .map((response: any) => {
-            // Supabase response structure is different from GraphQL
-            // response.id is already a string, no need for fallback
             const responseId = response.id;
 
-            // In supabase, data is already a JSON object (not stringified)
             let data: Record<string, any> = {};
             try {
-              // For supabase, data field should already be parsed
               if (response.data) {
                 data = response.data;
               } else {
-                // If no data field found, use the response object itself (excluding metadata)
                 const {
                   id,
                   created_at,
@@ -206,7 +203,6 @@ export default function SubmitForm() {
               data = {};
             }
 
-            // Get display value from the configured display field
             let displayValue = `پاسخ ${String(responseId).substring(
               0,
               8
@@ -221,7 +217,6 @@ export default function SubmitForm() {
               ) {
                 displayValue = String(displayFieldValue);
               } else {
-                // Try to find any non-empty text field as fallback
                 const firstTextValue = Object.values(data).find(
                   (val) =>
                     val !== undefined &&
@@ -238,7 +233,6 @@ export default function SubmitForm() {
               }
             }
 
-            // Get created_at date
             const createdAt = response.created_at || new Date().toISOString();
 
             return {
@@ -249,7 +243,7 @@ export default function SubmitForm() {
               formId: formId,
             };
           })
-          .filter((response) => response.id); // Filter out invalid responses
+          .filter((response) => response.id);
 
         setRelatedResponses((prev) => ({
           ...prev,
@@ -262,7 +256,6 @@ export default function SubmitForm() {
         );
         toast.error(`بارگذاری داده‌های مرتبط برای ${field.label} ناموفق بود`);
 
-        // Set empty array on error to prevent UI issues
         setRelatedResponses((prev) => ({
           ...prev,
           [field.id]: [],
@@ -279,7 +272,6 @@ export default function SubmitForm() {
       [fieldId]: value,
     }));
 
-    // Clear error for this field if it exists
     if (errors[fieldId]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -295,7 +287,6 @@ export default function SubmitForm() {
     fields.forEach((field: FormField) => {
       const value = formData[field.id];
 
-      // Check required fields
       if (field.required) {
         if (field.type === "checkbox") {
           if (!value) {
@@ -314,7 +305,6 @@ export default function SubmitForm() {
         }
       }
 
-      // Email validation
       if (field.type === "email" && value && value.trim() !== "") {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
@@ -322,16 +312,13 @@ export default function SubmitForm() {
         }
       }
 
-      // Number validation
       if (field.type === "number" && value && value.trim() !== "") {
         if (isNaN(Number(value))) {
           newErrors[field.id] = "لطفاً یک عدد معتبر وارد کنید";
         }
       }
 
-      // Relation validation
       if (field.type === "relation" && field.required && value) {
-        // Ensure the selected value is a valid form ID
         const responses = relatedResponses[field.id] || [];
         const selectedResponse = responses.find((r) => r.id === value);
         if (!selectedResponse) {
@@ -359,13 +346,18 @@ export default function SubmitForm() {
 
     setSubmitting(true);
     try {
-      // REPLACED: graphqlService.submitFormResponse → supabaseService.submitFormResponse
       const result = await supabaseService.submitFormResponse(id, formData);
 
       if (result) {
-        setIsSubmitted(true);
         toast.success("فرم با موفقیت ارسال شد!");
         setErrors({});
+        
+        // Check if redirect parameter exists
+        if (redirect) {
+          navigate(redirect);
+        } else {
+          setIsSubmitted(true);
+        }
       } else {
         toast.error("ارسال فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }
@@ -380,7 +372,6 @@ export default function SubmitForm() {
   const handleSubmitAnother = () => {
     setIsSubmitted(false);
 
-    // Reset form data to initial values
     const resetData: Record<string, any> = {};
     fields.forEach((field: FormField) => {
       switch (field.type) {
@@ -399,7 +390,6 @@ export default function SubmitForm() {
     setFormData(resetData);
     setErrors({});
 
-    // Scroll to top for better UX
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -599,7 +589,7 @@ export default function SubmitForm() {
           />
         );
 
-      default: // text and other types
+      default:
         return (
           <Input
             type="text"
@@ -658,8 +648,8 @@ export default function SubmitForm() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto">
-        {/* Success State - Shows after submission */}
-        {isSubmitted ? (
+        {/* Success State - Shows after submission when no redirect */}
+        {isSubmitted && !redirect ? (
           <Card className="border-green-200 shadow-lg">
             <CardContent className="pt-12 pb-12 text-center">
               <div className="flex justify-center mb-6">
@@ -710,7 +700,7 @@ export default function SubmitForm() {
           </Card>
         ) : (
           <>
-            {/* Form Header - Only shows when NOT in submitted state */}
+            {/* Form Header */}
             <div className="mb-8">
               <Button
                 variant="ghost"
@@ -742,7 +732,7 @@ export default function SubmitForm() {
               )}
             </div>
 
-            {/* Form - Only shows when NOT in submitted state */}
+            {/* Form */}
             {fields.length > 0 ? (
               <Card className="mb-8">
                 <CardHeader>
@@ -757,12 +747,11 @@ export default function SubmitForm() {
                     <div className="space-y-6">
                       {fields.map((field: FormField) => (
                         <div key={field.id} className="space-y-2">
-                          {/* Don't show label for checkbox in the same way */}
                           {field.type !== "checkbox" && (
                             <Label htmlFor={field.id}>
                               {field.label}
                               {field.required && (
-                                <span className="text-red-500 ml-1">*</span>
+                                <span className="text-red-500 mr-1">*</span>
                               )}
                             </Label>
                           )}
@@ -781,7 +770,6 @@ export default function SubmitForm() {
                               هرگز ایمیل شما را با کسی به اشتراک نخواهیم گذاشت.
                             </p>
                           )}
-
                         </div>
                       ))}
 
@@ -834,7 +822,7 @@ export default function SubmitForm() {
                   <p className="text-muted-foreground mb-4">
                     این فرم هیچ فیلدی برای ارسال ندارد.
                   </p>
-                  <Button onClick={() => navigate(`/form/${id}/responses`)} variant="outline">
+                  <Button onClick={() => navigate(`/responses/${id}`)} variant="outline">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     بازگشت به فهرست پاسخ ها
                   </Button>
