@@ -313,6 +313,9 @@ export class WorkflowService extends BaseSupabaseService {
         dbUpdates.active_instances = updates.active_instances;
       if (updates.completed_instances !== undefined)
         dbUpdates.completed_instances = updates.completed_instances;
+      if (updates.trigger_form?.id !== undefined) {
+        dbUpdates.trigger_form_id = updates.trigger_form?.id || null;
+      }
 
       const { data, error } = await this.supabase
         .from("workflows")
@@ -403,5 +406,77 @@ export class WorkflowService extends BaseSupabaseService {
     }
 
     return this.updateWorkflow(workflow.id, { status: newStatus });
+  }
+
+  async associateFormToWorkflow(
+    workflowId: number,
+    form: Form | Form[],
+  ): Promise<void> {
+    try {
+      // Check if workflow exists
+      const { data: workflow, error: workflowError } = await this.supabase
+        .from("workflows")
+        .select("id")
+        .eq("id", workflowId)
+        .single();
+
+      if (workflowError || !workflow) {
+        throw new Error(`Workflow with ID ${workflowId} not found`);
+      }
+
+      // Normalize input to array
+      const forms = Array.isArray(form) ? form : [form];
+
+      if (forms.length === 0) {
+        return; // Nothing to associate
+      }
+
+      // Prepare records for insertion
+      const records = forms.map((f) => ({
+        workflow_id: workflowId,
+        form_id: f.id,
+        created_at: new Date().toISOString(),
+      }));
+
+      // Insert records, ignoring duplicates if they already exist
+      const { error: insertError } = await this.supabase
+        .from("workflow_forms")
+        .insert(records)
+        .select(); // Using select() to avoid error on conflict
+
+      // Check for specific error types
+      if (insertError) {
+        // If it's a duplicate key error, we can ignore it or handle gracefully
+        if (insertError.code === "23505") {
+          // PostgreSQL unique violation code
+          console.warn("Some forms were already associated with this workflow");
+
+          // Option 1: Filter out existing associations and try again
+          const existingForms = await this.getWorkflowForms(workflowId);
+          const existingFormIds = new Set(existingForms.map((f) => f.id));
+
+          const newRecords = records.filter(
+            (r) => !existingFormIds.has(r.form_id),
+          );
+
+          if (newRecords.length > 0) {
+            const { error: retryError } = await this.supabase
+              .from("workflow_forms")
+              .insert(newRecords);
+
+            if (retryError) throw retryError;
+          }
+        } else {
+          throw insertError;
+        }
+      }
+
+      console.log(
+        `Successfully associated ${forms.length} form(s) with workflow ${workflowId}`,
+      );
+    } catch (error) {
+      console.error("Error in associateFormToWorkflow:", error);
+      throw error;
+    }
   }
 }
