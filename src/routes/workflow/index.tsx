@@ -116,8 +116,7 @@ export default function WorkflowsIndex() {
     setTogglingId(workflow.id);
     try {
       const updatedWorkflow = await supabaseService.toggleWorkflowStatus(
-        workflow.id,
-        workflow.status,
+        workflow
       );
 
       setWorkflows((prev) =>
