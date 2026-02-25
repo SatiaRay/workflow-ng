@@ -4,13 +4,21 @@
 export type FieldType = 'text' | 'email' | 'textarea' | 'number' | 'date' | 'checkbox' | 'select' | 'radio' | 'dropdown' | 'relation';
 
 export interface Form {
-  nodeId?: string; // Make this optional with ?
-  id: string;
+  id: number;
   title: string;
-  description: string | null;
-  schema: Record<string, any>;
+  description?: string | null;
+  schema: any;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  nodeId?: string;
+}
+
+export interface FormResponse {
+  id: number;
+  form_id: number;
+  data: any;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface FormEdge {

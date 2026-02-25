@@ -1,4 +1,3 @@
-// pages/workflows-index.tsx
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -26,12 +25,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Plus,
   Play,
   Pause,
   Edit,
@@ -55,25 +54,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import DeleteWorkflowConfirmation from "@/components/delete-workflow-confirmation"; // Add this import
-
-interface Workflow {
-  id: number;
-  name: string;
-  description?: string;
-  schema: any;
-  trigger_form_id: number;
-  status: 'draft' | 'active' | 'inactive' | 'archived';
-  active_instances: number;
-  completed_instances: number;
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
-  form?: {
-    id: number;
-    title: string;
-  };
-}
+import DeleteWorkflowConfirmation from "@/components/delete-workflow-confirmation";
+import type { Workflow } from "@/types/workflow";
+import CreateWorkflowDialog from "@/components/workflow/create-workflow-dialog";
 
 export default function WorkflowsIndex() {
   const navigate = useNavigate();
@@ -90,18 +73,17 @@ export default function WorkflowsIndex() {
   // Delete state
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-  
-  // Add state for delete confirmation dialog
+
+  // Delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null);
+  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(
+    null,
+  );
 
   const fetchWorkflows = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await supabaseService.getWorkflows(
-        currentPage,
-        pageSize,
-      );
+      const result = await supabaseService.getWorkflows(currentPage, pageSize);
 
       setWorkflows(result.data);
       setTotalCount(result.total);
@@ -126,7 +108,7 @@ export default function WorkflowsIndex() {
   }, [fetchWorkflows]);
 
   const handleStatusToggle = async (workflow: Workflow) => {
-    if (workflow.status === 'archived') {
+    if (workflow.status === "archived") {
       toast.error("گردش‌کار بایگانی شده را نمی‌توان فعال/غیرفعال کرد");
       return;
     }
@@ -135,15 +117,14 @@ export default function WorkflowsIndex() {
     try {
       const updatedWorkflow = await supabaseService.toggleWorkflowStatus(
         workflow.id,
-        workflow.status
+        workflow.status,
       );
 
-      // Update local state
-      setWorkflows(prev => prev.map(w => 
-        w.id === workflow.id ? updatedWorkflow : w
-      ));
+      setWorkflows((prev) =>
+        prev.map((w) => (w.id === workflow.id ? updatedWorkflow : w)),
+      );
 
-      const action = updatedWorkflow.status === 'active' ? 'فعال' : 'غیرفعال';
+      const action = updatedWorkflow.status === "active" ? "فعال" : "غیرفعال";
       toast.success(`گردش‌کار با موفقیت ${action} شد`);
     } catch (error: any) {
       console.error("Error toggling workflow status:", error);
@@ -153,15 +134,13 @@ export default function WorkflowsIndex() {
     }
   };
 
-  // Updated handleDelete function
   const handleDelete = async (id: number) => {
     setDeletingId(id);
     try {
       await supabaseService.deleteWorkflow(id);
 
-      // Remove from local state
-      setWorkflows(prev => prev.filter(w => w.id !== id));
-      setTotalCount(prev => prev - 1);
+      setWorkflows((prev) => prev.filter((w) => w.id !== id));
+      setTotalCount((prev) => prev - 1);
 
       toast.success("گردش‌کار با موفقیت حذف شد");
     } catch (error: any) {
@@ -174,19 +153,16 @@ export default function WorkflowsIndex() {
     }
   };
 
-  // Open delete confirmation dialog
   const openDeleteDialog = (workflow: Workflow) => {
     setWorkflowToDelete(workflow);
     setDeleteDialogOpen(true);
   };
 
-  // Cancel delete
   const cancelDelete = () => {
     setDeleteDialogOpen(false);
     setWorkflowToDelete(null);
   };
 
-  // Confirm delete
   const confirmDelete = () => {
     if (workflowToDelete) {
       handleDelete(workflowToDelete.id);
@@ -203,28 +179,28 @@ export default function WorkflowsIndex() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
+      case "active":
         return (
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
             <Play className="w-3 h-3 ml-1" />
             فعال
           </Badge>
         );
-      case 'draft':
+      case "draft":
         return (
           <Badge variant="outline" className="text-gray-600 border-gray-300">
             <FileText className="w-3 h-3 ml-1" />
             پیش‌نویس
           </Badge>
         );
-      case 'inactive':
+      case "inactive":
         return (
           <Badge variant="outline" className="text-amber-600 border-amber-300">
             <Pause className="w-3 h-3 ml-1" />
             غیرفعال
           </Badge>
         );
-      case 'archived':
+      case "archived":
         return (
           <Badge variant="outline" className="text-gray-400 border-gray-300">
             <AlertCircle className="w-3 h-3 ml-1" />
@@ -237,7 +213,9 @@ export default function WorkflowsIndex() {
   };
 
   const getTotalInstances = (workflow: Workflow) => {
-    return (workflow.active_instances || 0) + (workflow.completed_instances || 0);
+    return (
+      (workflow.active_instances || 0) + (workflow.completed_instances || 0)
+    );
   };
 
   if (loading && !workflows.length) {
@@ -250,13 +228,6 @@ export default function WorkflowsIndex() {
               <Skeleton className="h-4 w-64" />
             </div>
             <Skeleton className="h-10 w-32" />
-          </div>
-
-          {/* Stats Skeleton */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <Skeleton key={i} className="h-24 rounded-lg" />
-            ))}
           </div>
 
           <Card>
@@ -289,13 +260,7 @@ export default function WorkflowsIndex() {
             </p>
           </div>
 
-          <Button
-            className="cursor-pointer"
-            onClick={() => navigate("/workflows/create")}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            ایجاد گردش‌کار جدید
-          </Button>
+          <CreateWorkflowDialog />
         </div>
 
         {/* Workflows Table */}
@@ -394,7 +359,13 @@ export default function WorkflowsIndex() {
             {workflows.length === 0 ? (
               <div className="text-center py-12">
                 <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">گردش‌کاری یافت نشد</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  گردش‌کاری یافت نشد
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  اولین گردش کار خود را ایجاد کنید
+                </p>
+                <CreateWorkflowDialog />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -423,15 +394,13 @@ export default function WorkflowsIndex() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-muted-foreground" />
-                            <span>{workflow.form?.title || 'بدون فرم'}</span>
+                            <span>{workflow.form?.title || "بدون فرم"}</span>
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">
                             ID: {workflow.trigger_form_id}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {getStatusBadge(workflow.status)}
-                        </TableCell>
+                        <TableCell>{getStatusBadge(workflow.status)}</TableCell>
                         <TableCell>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
@@ -467,45 +436,44 @@ export default function WorkflowsIndex() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>عملیات</DropdownMenuLabel>
-                              
+
                               <DropdownMenuItem
-                                onClick={() => navigate(`/workflows/show/${workflow.id}`)}
+                                onClick={() =>
+                                  navigate(`/workflows/${workflow.id}`)
+                                }
                               >
                                 <Eye className="w-4 h-4 ml-2" />
                                 مشاهده جزئیات
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/workflows/${workflow.id}/edit`)}
-                              >
-                                <Edit className="w-4 h-4 ml-2" />
-                                ویرایش
-                              </DropdownMenuItem>
+                              {workflow.status === "draft" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate(`/workflows/${workflow.id}`)
+                                  }
+                                >
+                                  <Edit className="w-4 h-4 ml-2" />
+                                  طراحی فرآیند
+                                </DropdownMenuItem>
+                              )}
 
                               <DropdownMenuSeparator />
 
-                              {workflow.status !== 'archived' && (
+                              {workflow.status !== "archived" && (
                                 <DropdownMenuItem
                                   onClick={() => handleStatusToggle(workflow)}
                                   disabled={togglingId === workflow.id}
                                 >
                                   {togglingId === workflow.id ? (
                                     <RefreshCw className="w-4 h-4 ml-2 animate-spin" />
-                                  ) : workflow.status === 'active' ? (
+                                  ) : workflow.status === "active" ? (
                                     <Pause className="w-4 h-4 ml-2" />
                                   ) : (
                                     <Play className="w-4 h-4 ml-2" />
                                   )}
-                                  {workflow.status === 'active' ? 'غیرفعال کردن' : 'فعال کردن'}
-                                </DropdownMenuItem>
-                              )}
-
-                              {workflow.status === 'draft' && (
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/workflows/design/${workflow.id}`)}
-                                >
-                                  <BarChart3 className="w-4 h-4 ml-2" />
-                                  طراحی فرآیند
+                                  {workflow.status === "active"
+                                    ? "غیرفعال کردن"
+                                    : "فعال کردن"}
                                 </DropdownMenuItem>
                               )}
 

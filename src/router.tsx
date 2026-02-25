@@ -22,6 +22,7 @@ import CreateWorkflow from "./routes/workflow/create-workflow";
 import EditWorkflow from "./routes/workflow/edit-workflow";
 import TaskIndex from "./routes/task";
 import TaskDetail from "./routes/task/task-detail";
+import WorkflowDetail from "./routes/workflow/workflow-detail";
 
 const brandingRoutes = () => {
   return {
@@ -176,6 +177,10 @@ const workflowRoutes = () => {
         element: <WorkflowsIndex />,
       },
       {
+        path: ":id",
+        element: <WorkflowDetail />,
+      },
+      {
         path: "create",
         element: <CreateWorkflow />,
       },
@@ -199,7 +204,7 @@ const taskRoutes = () => {
       {
         path: ":id",
         element: <TaskDetail />,
-      }
+      },
     ],
   };
 };
@@ -212,5 +217,5 @@ export const router = createBrowserRouter([
   formResponseRoutes(),
   userRoutes(),
   roleRoutes(),
-  taskRoutes()
+  taskRoutes(),
 ]);

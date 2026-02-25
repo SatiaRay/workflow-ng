@@ -1,22 +1,3 @@
-// Form types
-export interface Form {
-  id: number;
-  title: string;
-  description?: string | null;
-  schema: any;
-  created_at: string;
-  updated_at?: string;
-  nodeId?: string;
-}
-
-export interface FormResponse {
-  id: number;
-  form_id: number;
-  data: any;
-  created_at: string;
-  updated_at?: string;
-}
-
 export interface Filter {
   operator: string;
   value: any;

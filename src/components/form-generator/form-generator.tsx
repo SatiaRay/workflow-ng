@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -20,15 +21,19 @@ import {
 import FieldItem from "./field-item";
 import { Plus, Copy, Download, Save, RefreshCw, Link } from "lucide-react";
 import { toast } from "sonner";
-import { supabaseService } from "@/services/supabase.service";
+import { supabaseService } from "@/services/supabase";
 import type { FormSchema, FormField } from "@/types/form";
-import { useNavigate } from "react-router-dom";
 
 // Export types for external use
 export type { FormSchema, FormField };
 
 export default function FormGenerator() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Get workflow params from URL
+  const workflowId = searchParams.get("workflow");
+  const isTriggerForm = searchParams.get("type_trigger_form") === "true";
 
   const [form, setForm] = useState<FormSchema>({
     title: "نظرسنجی مشتریان",
@@ -66,7 +71,7 @@ export default function FormGenerator() {
     setForm((prev) => ({
       ...prev,
       fields: prev.fields.map((field) =>
-        field.id === id ? { ...field, ...updates } : field
+        field.id === id ? { ...field, ...updates } : field,
       ),
     }));
   };
@@ -115,14 +120,14 @@ export default function FormGenerator() {
     const invalidFields = form.fields.filter(
       (field) =>
         (field.type === "select" || field.type === "radio") &&
-        (!field.options || field.options.length === 0)
+        (!field.options || field.options.length === 0),
     );
 
     if (invalidFields.length > 0) {
       toast.error(
         `لطفاً گزینه‌هایی به ${invalidFields.length} ${
           invalidFields.length === 1 ? "فیلد" : "فیلد"
-        } اضافه کنید: ${invalidFields.map((f) => f.label).join(", ")}`
+        } اضافه کنید: ${invalidFields.map((f) => f.label).join(", ")}`,
       );
       return;
     }
@@ -136,13 +141,32 @@ export default function FormGenerator() {
         schema: form, // Store the complete form schema directly as JSON
       };
 
-      // Changed from graphqlService.createForm() to supabaseService.createForm()
+      // Create the form
       const result = await supabaseService.createForm(formData);
 
       if (result) {
         toast.success("فرم با موفقیت در پایگاه داده ذخیره شد!");
 
-        navigate('/form')
+        // If workflowId is present in URL, associate the form to the workflow
+        if (workflowId) {
+          // Associate form to workflow
+          await supabaseService.associateFormToWorkflow(workflowId, result);
+
+          // If this is a trigger form, update the workflow's trigger_form_id
+          if (isTriggerForm) {
+            await supabaseService.updateWorkflow(workflowId, {
+              trigger_form: {
+                id: result.id,
+              },
+            });
+            toast.success("فرم به عنوان فرم آغازگر گردش کار تنظیم شد!");
+          } else {
+            toast.success("فرم به گردش کار متصل شد!");
+          }
+
+          // Navigate to workflow detail page
+          navigate(`/workflows/${workflowId}`);
+        } else navigate("/form");
       } else {
         toast.error("ذخیره فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }
@@ -249,7 +273,14 @@ export default function FormGenerator() {
         <div>
           <h1 className="text-3xl font-bold">سازنده فرم</h1>
           <p className="text-muted-foreground">
-            فرم‌ها را بصری بسازید و به عنوان JSON خروجی بگیرید یا در پایگاه داده ذخیره کنید
+            فرم‌ها را بصری بسازید و به عنوان JSON خروجی بگیرید یا در پایگاه داده
+            ذخیره کنید
+            {workflowId && (
+              <span className="block mt-1 text-primary">
+                در حال ایجاد فرم برای گردش کار #{workflowId}
+                {isTriggerForm && " (فرم آغازگر)"}
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -346,7 +377,9 @@ export default function FormGenerator() {
           <Card>
             <CardHeader>
               <CardTitle>عملیات</CardTitle>
-              <CardDescription>فرم خود را ذخیره یا خروجی بگیرید</CardDescription>
+              <CardDescription>
+                فرم خود را ذخیره یا خروجی بگیرید
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">

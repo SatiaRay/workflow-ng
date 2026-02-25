@@ -22,3 +22,18 @@ export function extractResopnseIdentifier(
 
   return identifier
 }
+
+export const formatDateTime = (date: string | null) => {
+  if (!date) return "-";
+  try {
+    return new Date(date).toLocaleDateString("fa-IR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return date;
+  }
+};
