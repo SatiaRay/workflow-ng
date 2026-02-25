@@ -10,7 +10,7 @@ import type { Workflow } from "@/types/workflow";
 
 // Mock the WorkflowEditor component
 vi.mock("@/components/workflow/diagram/workflow-editor", () => ({
-  default: ({ onChange, workflowData }: any) => (
+  default: ({ workflow, onChange }: any) => (
     <div data-testid="workflow-editor">
       <button 
         onClick={() => onChange({ nodes: [{ id: "new-node" }], edges: [] })}
@@ -18,7 +18,7 @@ vi.mock("@/components/workflow/diagram/workflow-editor", () => ({
       >
         Mock Editor Change
       </button>
-      <div data-testid="editor-data">{JSON.stringify(workflowData)}</div>
+      <div data-testid="editor-data">{JSON.stringify(workflow)}</div>
     </div>
   ),
 }));

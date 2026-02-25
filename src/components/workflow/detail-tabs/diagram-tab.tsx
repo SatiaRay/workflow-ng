@@ -31,12 +31,14 @@ const DiagramTab = () => {
     setSaveError(null);
     try {
       const success = await saveWorkflow({ schema });
-      
+
       if (success) {
         setHasChanges(false);
       }
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'خطا در ذخیره سازی');
+      setSaveError(
+        error instanceof Error ? error.message : "خطا در ذخیره سازی",
+      );
     }
   };
 
@@ -73,10 +75,7 @@ const DiagramTab = () => {
             </Alert>
           )}
           <div className="h-150 border rounded-lg overflow-hidden">
-            <WorkflowEditor
-              onChange={handleSchemaChange}
-              workflowData={schema}
-            />
+            <WorkflowEditor workflow={workflow} onChange={handleSchemaChange} />
           </div>
         </CardContent>
         {hasChanges && (

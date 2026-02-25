@@ -13,13 +13,23 @@ import {
 } from "@/components/ui/select";
 import { FormService } from "@/services/supabase/form-services";
 import { RoleService } from "@/services/supabase/role-service";
+import { supabaseService } from "@/services/supabase";
+import type { Workflow } from "@/types/workflow";
 
 const NodeDetails = ({
+  workflow,
   node,
   onUpdate,
   onClose,
   onDelete,
   latestFillFormNode,
+} : {
+  workflow: Workflow,
+  node: any,
+  onUpdate: () => void,
+  onClose: () => void,
+  onDelete: () => void,
+  latestFillFormNode: any
 }) => {
   // Added latestFillFormNode prop
   const [label, setLabel] = useState(node.data.label || "");
@@ -70,10 +80,8 @@ const NodeDetails = ({
   // Load data based on node type
   useEffect(() => {
     const loadData = async () => {
-      const formService = new FormService();
-
       if (node.type === "assign-task" || node.type === "fill-form") {
-        const forms = await formService.getForms();
+        const forms = await supabaseService.getWorkflowForms(workflow.id)
         setAvailableForms(forms);
 
         if (node.type === "assign-task") {
