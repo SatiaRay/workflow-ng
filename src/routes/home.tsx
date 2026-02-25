@@ -14,13 +14,16 @@ import {
   LayoutDashboard,
   ArrowRight,
   Link as LinkIcon,
+  GitMerge,
+  CheckSquare,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 
 export default function HomePage() {
   const navigate = useNavigate();
 
-  const {logout, user, isAuthenticated} = useAuth()
+  const { logout, user, isAuthenticated } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -35,49 +38,54 @@ export default function HomePage() {
           <>
             <div className="space-y-4">
               <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-                پلتفرم  <span className="text-primary">گردش کار ساتیا</span>
+                پلتفرم <span className="text-primary">گردش کار ساتیا</span>
               </h1>
 
               <p className="text-xl text-muted-foreground">
-                ساخت و مدیریت فرم‌های پیشرفته با قابلیت ارتباط بین فرم‌های مختلف
+                از فرم‌های پویا تا گردش‌کارهای هوشمند: فرآیندهای سازمانی خود را
+                خودکار کنید
               </p>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
                 <div className="bg-card border rounded-lg p-4 space-y-2">
                   <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                    <FileText className="h-5 w-5 text-primary" />
+                    <GitMerge className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="font-semibold">فرم‌ساز پویا</h3>
+                  <h3 className="font-semibold">طراح گردش‌کار</h3>
                   <p className="text-sm text-muted-foreground">
-                    ایجاد فرم‌های سفارشی با انواع فیلدهای مختلف
+                    ایجاد فرآیندهای دلخواه با استفاده از فرم‌های پویا به عنوان
+                    گره‌های گردش‌کار
                   </p>
                 </div>
-                
+
                 <div className="bg-card border rounded-lg p-4 space-y-2">
                   <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                    <LinkIcon className="h-5 w-5 text-primary" />
+                    <CheckSquare className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="font-semibold">ارتباط فرم‌ها</h3>
+                  <h3 className="font-semibold">مدیریت وظایف</h3>
                   <p className="text-sm text-muted-foreground">
-                    ایجاد رابطه هوشمند بین فرم‌های مختلف و داده‌های مرتبط
+                    توزیع و پیگیری وظایف بین کاربران با امکان تعیین وضعیت و
+                    اولویت‌بندی
                   </p>
                 </div>
-                
+
                 <div className="bg-card border rounded-lg p-4 space-y-2">
                   <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                    <BarChart3 className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="font-semibold">مدیریت پیشرفته</h3>
+                  <h3 className="font-semibold">تحلیل فرآیندها</h3>
                   <p className="text-sm text-muted-foreground">
-                    مشاهده، ویرایش و تحلیل داده‌های جمع‌آوری شده
+                    گزارش‌گیری و مانیتورینگ پیشرفت گردش‌کارها و عملکرد تیم
                   </p>
                 </div>
               </div>
-              
+
               <p className="text-lg leading-relaxed pt-4">
-                گردش کار ساتیا یک پلتفرم کامل برای طراحی، ساخت و مدیریت فرم‌های پویا است. 
-                امکان ایجاد ارتباط بین فرم‌های مختلف را فراهم کرده و به شما اجازه می‌دهد 
-                سیستم‌های فرم‌بندی پیچیده و هوشمندی ایجاد کنید.
+                گردش‌کار ساتیا فراتر از یک ابزار ساده فرم‌ساز، یک پلتفرم قدرتمند
+                اتوماسیون فرآیندهاست. با استفاده از فرم‌های پویا به عنوان
+                گره‌های یک گردش‌کار، می‌توانید سناریوهای دلخواه خود را
+                پیاده‌سازی کرده و پس از فعال‌سازی، فرآیندهای سازمانی را در قالب
+                وظایف مشخص مدیریت و پیگیری کنید.
               </p>
             </div>
 
@@ -123,9 +131,11 @@ export default function HomePage() {
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-medium text-muted-foreground text-center">
-                  دسترسی سریع به پلتفرم فرم‌سازی
+                  دسترسی سریع به بخش‌های اصلی
                 </h3>
-                <div className="space-y-3">
+
+                <div className="space-y-3 flex flex-col">
+                  {/* فرم‌ها */}
                   <Link to="/form">
                     <Button
                       className="w-full justify-between group p-6"
@@ -133,12 +143,50 @@ export default function HomePage() {
                     >
                       <div className="flex items-center gap-3">
                         <FileText className="h-5 w-5" />
-                        <div className="text-left">
-                          <div className="font-semibold">
-                            ساخت و مدیریت فرم‌ها
+                        <div className="text-right">
+                          <div className="font-semibold text-right">
+                            مدیریت فرم‌ها
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            ایجاد فرم‌های پویا با قابلیت ارتباط بین فرم‌های مختلف
+                            ساخت و ویرایش فرم‌های پویا
+                          </div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+
+                  {/* گردش‌کارها */}
+                  <Link to="/workflows">
+                    <Button
+                      className="w-full justify-between group p-6"
+                      variant="outline"
+                    >
+                      <div className="flex items-center gap-3">
+                        <GitMerge className="h-5 w-5" />
+                        <div className="text-right">
+                          <div className="font-semibold">گردش‌کارها</div>
+                          <div className="text-sm text-muted-foreground">
+                            طراحی و مدیریت فرآیندهای سازمانی
+                          </div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+
+                  {/* وظایف */}
+                  <Link to="/tasks">
+                    <Button
+                      className="w-full justify-between group p-6"
+                      variant="outline"
+                    >
+                      <div className="flex items-center gap-3">
+                        <CheckSquare className="h-5 w-5" />
+                        <div className="text-right">
+                          <div className="font-semibold">وظایف من</div>
+                          <div className="text-sm text-muted-foreground">
+                            مشاهده و پیگیری وظایف محول شده
                           </div>
                         </div>
                       </div>
@@ -148,21 +196,31 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-4">
+              <div className="grid grid-cols-3 gap-3 pt-4">
                 <Button
-                  onClick={() => navigate('/form/generator')}
+                  onClick={() => navigate("/form/generator")}
                   variant="outline"
                   className="flex-1"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  ساخت فرم جدید
+                  <FileText className="h-4 w-4 ml-2" />
+                  فرم جدید
                 </Button>
+
+                <Button
+                  onClick={() => navigate("/workflows/create")}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <GitMerge className="h-4 w-4 ml-2" />
+                  گردش‌کار جدید
+                </Button>
+
                 <Button
                   onClick={handleLogout}
                   variant="outline"
                   className="flex-1"
                 >
-                  خروج از حساب
+                  خروج
                 </Button>
               </div>
             </CardContent>
@@ -172,8 +230,8 @@ export default function HomePage() {
         <div className="pt-12 border-t border-gray-800">
           <p className="text-sm text-muted-foreground">
             {isAuthenticated()
-              ? "از پنل مدیریت فرم‌های پویا استفاده کنید. قابلیت ارتباط بین فرم‌ها را امتحان کنید."
-              : "گردش کار ساتیا - پلتفرم پیشرفته ساخت فرم‌های پویا با قابلیت ارتباط بین فرم‌های مختلف"}
+              ? "فرآیندهای سازمانی خود را با گردش‌کارهای هوشمند طراحی و مدیریت کنید. وظایف را بین کاربران توزیع و پیگیری نمایید."
+              : "گردش کار ساتیا - پلتفرم اتوماسیون فرآیندها با قابلیت طراحی گردش‌کار و مدیریت وظایف با استفاده از فرم‌های پویا"}
           </p>
         </div>
       </div>

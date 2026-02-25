@@ -156,7 +156,7 @@ export default function FormGenerator() {
           if (isTriggerForm) {
             await supabaseService.updateWorkflow(workflowId, {
               trigger_form: {
-                id: result.id
+                id: result.id,
               },
             });
             toast.success("فرم به عنوان فرم آغازگر گردش کار تنظیم شد!");
@@ -166,14 +166,7 @@ export default function FormGenerator() {
 
           // Navigate to workflow detail page
           navigate(`/workflows/${workflowId}`);
-        }
-
-        // Optional: Reset form after successful save
-        // setForm({
-        //   title: "",
-        //   description: "",
-        //   fields: []
-        // });
+        } else navigate("/form");
       } else {
         toast.error("ذخیره فرم ناموفق بود - هیچ پاسخی دریافت نشد");
       }
