@@ -6,9 +6,9 @@ import "@testing-library/jest-dom";
 import Navbar, { NavbarItem } from "../../src/components/navbar";
 
 const testItems: NavbarItem[] = [
-  { label: "Home", path: "/" },
-  { label: "About", path: "/about" },
-  { label: "Contact", path: "/contact" },
+  { label: "Home", path: "/", allowedRoles: ['user'] },
+  { label: "About", path: "/about", allowedRoles: ['user'] },
+  { label: "Contact", path: "/contact", allowedRoles: ['user'] },
 ];
 
 describe("Test Navbar For Desktop Version", () => {
