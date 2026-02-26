@@ -23,18 +23,17 @@ import { useAuth } from "@/context/auth-context";
 export default function HomePage() {
   const navigate = useNavigate();
 
-  const { logout, user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  const handleLogout = async () => {
-    await logout();
-    window.location.reload();
-  };
+  useEffect(() => {
+    if(isAuthenticated())
+      navigate('/tasks')
+  }, [])
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center text-center">
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Show ONLY when NOT logged in */}
-        {!isAuthenticated() && (
           <>
             <div className="space-y-4">
               <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
@@ -113,125 +112,11 @@ export default function HomePage() {
               </a>
             </div>
           </>
-        )}
-
-        {/* Show Welcome Back card when user IS logged in */}
-        {isAuthenticated() && (
-          <Card className="max-w-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 justify-center text-3xl">
-                <LayoutDashboard className="h-7 w-7" />
-                خوش برگشتی!
-              </CardTitle>
-              <CardDescription className="text-lg">
-                شما با این حساب وارد شده‌اید:{" "}
-                <span className="font-semibold">{user?.email}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="font-medium text-muted-foreground text-center">
-                  دسترسی سریع به بخش‌های اصلی
-                </h3>
-
-                <div className="space-y-3 flex flex-col">
-                  {/* فرم‌ها */}
-                  <Link to="/form">
-                    <Button
-                      className="w-full justify-between group p-6"
-                      variant="outline"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5" />
-                        <div className="text-right">
-                          <div className="font-semibold text-right">
-                            مدیریت فرم‌ها
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            ساخت و ویرایش فرم‌های پویا
-                          </div>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                  </Link>
-
-                  {/* گردش‌کارها */}
-                  <Link to="/workflows">
-                    <Button
-                      className="w-full justify-between group p-6"
-                      variant="outline"
-                    >
-                      <div className="flex items-center gap-3">
-                        <GitMerge className="h-5 w-5" />
-                        <div className="text-right">
-                          <div className="font-semibold">گردش‌کارها</div>
-                          <div className="text-sm text-muted-foreground">
-                            طراحی و مدیریت فرآیندهای سازمانی
-                          </div>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                  </Link>
-
-                  {/* وظایف */}
-                  <Link to="/tasks">
-                    <Button
-                      className="w-full justify-between group p-6"
-                      variant="outline"
-                    >
-                      <div className="flex items-center gap-3">
-                        <CheckSquare className="h-5 w-5" />
-                        <div className="text-right">
-                          <div className="font-semibold">وظایف من</div>
-                          <div className="text-sm text-muted-foreground">
-                            مشاهده و پیگیری وظایف محول شده
-                          </div>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 pt-4">
-                <Button
-                  onClick={() => navigate("/form/generator")}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <FileText className="h-4 w-4 ml-2" />
-                  فرم جدید
-                </Button>
-
-                <Button
-                  onClick={() => navigate("/workflows/create")}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <GitMerge className="h-4 w-4 ml-2" />
-                  گردش‌کار جدید
-                </Button>
-
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  خروج
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="pt-12 border-t border-gray-800">
           <p className="text-sm text-muted-foreground">
-            {isAuthenticated()
-              ? "فرآیندهای سازمانی خود را با گردش‌کارهای هوشمند طراحی و مدیریت کنید. وظایف را بین کاربران توزیع و پیگیری نمایید."
-              : "گردش کار ساتیا - پلتفرم اتوماسیون فرآیندها با قابلیت طراحی گردش‌کار و مدیریت وظایف با استفاده از فرم‌های پویا"}
+            گردش کار ساتیا - پلتفرم اتوماسیون فرآیندها با قابلیت طراحی گردش‌کار
+            و مدیریت وظایف با استفاده از فرم‌های پویا
           </p>
         </div>
       </div>

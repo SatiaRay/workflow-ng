@@ -15,7 +15,7 @@ export function ProtectedRoute({ children, allowedRoles = [] }: ProtectedRoutePr
   }
 
   if (!isAuthenticated()) {
-    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+    return <Navigate to={`/auth/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
