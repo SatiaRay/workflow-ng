@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useTheme } from "./theme-provider";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
+import type { UserRole } from "@/types/user";
 
 
 export interface NavbarProps {
@@ -12,6 +13,7 @@ export interface NavbarProps {
 export interface NavbarItem {
   label: string;
   path: string;
+  allowedRoles: UserRole[]
 }
 
 export default function Navbar({ items }: NavbarProps) {
