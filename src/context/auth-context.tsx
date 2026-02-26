@@ -7,9 +7,11 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase-client";
+import type { UserRole } from "@/types/user";
 
 type AuthContextType = {
   user: User | null;
+  role: UserRole;
   session: Session | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -27,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole]  = useState<UserRole>()
 
   useEffect(() => {
     const initAuth = async () => {
@@ -47,6 +50,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    setRole(session?.user?.app_metadata?.role as UserRole || 'user')
+  }, [session])
 
   // Login with email + password
   const login = async (email: string, password: string) => {
@@ -114,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        role,
         session,
         loading,
         login,
