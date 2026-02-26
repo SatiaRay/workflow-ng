@@ -584,7 +584,10 @@ export default function SubmitForm() {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
+                captionLayout="dropdown"
                 selected={selectedDate}
+                startMonth={new Date(1920, 0, 1)}          // Farvardin 1300 (January 1921-ish Gregorian)
+                endMonth={new Date(new Date().getFullYear() + 2, 11, 1)}  // Dey  (December) of current+10
                 onSelect={(date) => {
                   if (date) {
                     handleInputChange(
