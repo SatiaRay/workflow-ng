@@ -116,7 +116,7 @@ const DesktopNavigationMenu = ({
   isPathnameActive: (pathname: string) => boolean;
 }) => {
   return (
-    <div className="hidden md:flex items-center space-x-6 rtl:space-x-reverse">
+    <div className="hidden md:flex items-center space-x-6">
       {items.map((item) => (
         <Link
           key={item.label}
