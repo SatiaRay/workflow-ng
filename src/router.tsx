@@ -13,7 +13,6 @@ import ResponsesIndex from "./routes/response/responses-index";
 import EditResponse from "./routes/response/edit-response";
 import ShowResponse from "./routes/response/show-response";
 import LoginPage from "./routes/login";
-import ProtectedRoute from "./components/protected-route";
 import UsersIndex from "./routes/user";
 import CreateUser from "./routes/user/create-user";
 import RolesIndex from "./routes/role";
@@ -23,6 +22,7 @@ import EditWorkflow from "./routes/workflow/edit-workflow";
 import TaskIndex from "./routes/task";
 import TaskDetail from "./routes/task/task-detail";
 import WorkflowDetail from "./routes/workflow/workflow-detail";
+import { ProtectedRoute } from "./lib/protected-route";
 
 const brandingRoutes = () => {
   return {
@@ -70,7 +70,7 @@ const formRoutes = () => {
       {
         path: "generator",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["superadmin"]}>
             <FormGenerator />
           </ProtectedRoute>
         ),
@@ -78,7 +78,7 @@ const formRoutes = () => {
       {
         path: "submit/:id",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["superadmin"]}>
             <SubmitForm />
           </ProtectedRoute>
         ),
@@ -87,7 +87,7 @@ const formRoutes = () => {
         index: true,
         path: "",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["superadmin"]}>
             <FormList />
           </ProtectedRoute>
         ),
@@ -95,7 +95,7 @@ const formRoutes = () => {
       {
         path: "edit/:formId",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["superadmin"]}>
             <EditForm />
           </ProtectedRoute>
         ),
@@ -112,7 +112,7 @@ const formResponseRoutes = () => {
       {
         path: ":formId",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["superadmin"]}>
             <ResponsesIndex />
           </ProtectedRoute>
         ),
@@ -120,7 +120,7 @@ const formResponseRoutes = () => {
       {
         path: ":formId/show/:responseId",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["superadmin"]}>
             <ShowResponse />
           </ProtectedRoute>
         ),
@@ -128,7 +128,7 @@ const formResponseRoutes = () => {
       {
         path: ":formId/edit/:responseId",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["superadmin"]}>
             <EditResponse />
           </ProtectedRoute>
         ),
@@ -144,11 +144,19 @@ const userRoutes = () => {
     children: [
       {
         path: "",
-        element: <UsersIndex />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <UsersIndex />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "create",
-        element: <CreateUser />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <CreateUser />
+          </ProtectedRoute>
+        ),
       },
     ],
   };
@@ -161,7 +169,11 @@ const roleRoutes = () => {
     children: [
       {
         path: "",
-        element: <RolesIndex />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <RolesIndex />
+          </ProtectedRoute>
+        ),
       },
     ],
   };
@@ -174,19 +186,35 @@ const workflowRoutes = () => {
     children: [
       {
         path: "",
-        element: <WorkflowsIndex />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <WorkflowsIndex />
+          </ProtectedRoute>
+        ),
       },
       {
         path: ":id",
-        element: <WorkflowDetail />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <WorkflowDetail />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "create",
-        element: <CreateWorkflow />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <CreateWorkflow />
+          </ProtectedRoute>
+        ),
       },
       {
         path: ":id/edit",
-        element: <EditWorkflow />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin"]}>
+            <EditWorkflow />
+          </ProtectedRoute>
+        ),
       },
     ],
   };
@@ -199,11 +227,19 @@ const taskRoutes = () => {
     children: [
       {
         path: "",
-        element: <TaskIndex />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin", "user"]}>
+            <TaskIndex />
+          </ProtectedRoute>
+        ),
       },
       {
         path: ":id",
-        element: <TaskDetail />,
+        element: (
+          <ProtectedRoute allowedRoles={["superadmin", "user"]}>
+            <TaskDetail />
+          </ProtectedRoute>
+        ),
       },
     ],
   };
