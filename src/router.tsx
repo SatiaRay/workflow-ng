@@ -78,7 +78,7 @@ const formRoutes = () => {
       {
         path: "submit/:id",
         element: (
-          <ProtectedRoute allowedRoles={["superadmin"]}>
+          <ProtectedRoute allowedRoles={["superadmin", 'user']}>
             <SubmitForm />
           </ProtectedRoute>
         ),
