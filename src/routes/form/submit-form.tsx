@@ -7,6 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,7 +67,7 @@ interface RelatedResponse {
 
 export default function SubmitForm() {
   const { id } = useParams<{ id: string }>();
-  
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -158,7 +166,7 @@ export default function SubmitForm() {
 
   const fetchRelatedResponses = async (fields: FormField[]) => {
     const relationFields = fields.filter(
-      (f) => f.type === "relation" && f.relationConfig?.formId
+      (f) => f.type === "relation" && f.relationConfig?.formId,
     );
 
     for (const field of relationFields) {
@@ -171,7 +179,7 @@ export default function SubmitForm() {
         if (!Array.isArray(responses)) {
           console.error(
             `Expected array of responses for form ${formId}, got:`,
-            responses
+            responses,
           );
           setRelatedResponses((prev) => ({
             ...prev,
@@ -189,13 +197,8 @@ export default function SubmitForm() {
               if (response.data) {
                 data = response.data;
               } else {
-                const {
-                  id,
-                  created_at,
-                  updated_at,
-                  form_id,
-                  ...rest
-                } = response;
+                const { id, created_at, updated_at, form_id, ...rest } =
+                  response;
                 data = rest;
               }
             } catch (error) {
@@ -203,10 +206,7 @@ export default function SubmitForm() {
               data = {};
             }
 
-            let displayValue = `پاسخ ${String(responseId).substring(
-              0,
-              8
-            )}...`;
+            let displayValue = `پاسخ ${String(responseId).substring(0, 8)}...`;
 
             if (field.relationConfig?.displayField) {
               const displayFieldValue = data[field.relationConfig.displayField];
@@ -221,7 +221,7 @@ export default function SubmitForm() {
                   (val) =>
                     val !== undefined &&
                     val !== null &&
-                    String(val).trim() !== ""
+                    String(val).trim() !== "",
                 );
                 if (firstTextValue) {
                   const strValue = String(firstTextValue);
@@ -252,7 +252,7 @@ export default function SubmitForm() {
       } catch (error) {
         console.error(
           `Error fetching related responses for field ${field.id}:`,
-          error
+          error,
         );
         toast.error(`بارگذاری داده‌های مرتبط برای ${field.label} ناموفق بود`);
 
@@ -298,7 +298,8 @@ export default function SubmitForm() {
           field.type === "relation"
         ) {
           if (!value || value.toString().trim() === "") {
-            newErrors[field.id] = `لطفاً یک گزینه برای ${field.label} انتخاب کنید`;
+            newErrors[field.id] =
+              `لطفاً یک گزینه برای ${field.label} انتخاب کنید`;
           }
         } else if (!value || value.toString().trim() === "") {
           newErrors[field.id] = `${field.label} الزامی است`;
@@ -351,7 +352,7 @@ export default function SubmitForm() {
       if (result) {
         toast.success("فرم با موفقیت ارسال شد!");
         setErrors({});
-        
+
         // Check if redirect parameter exists
         if (redirect) {
           navigate(redirect);
@@ -465,15 +466,15 @@ export default function SubmitForm() {
                 value: response.id,
                 label: response.displayValue,
                 description: `ارسال شده در ${new Date(
-                  response.created_at
+                  response.created_at,
                 ).toLocaleDateString("fa-IR")}`,
               }))}
               placeholder={
                 isLoading
                   ? "در حال بارگذاری گزینه‌ها..."
                   : hasResponses
-                  ? field.placeholder || `انتخاب از ${formTitle}`
-                  : "پاسخی موجود نیست"
+                    ? field.placeholder || `انتخاب از ${formTitle}`
+                    : "پاسخی موجود نیست"
               }
               disabled={isLoading || !hasResponses}
               className={fieldError ? "border-red-500" : ""}
@@ -554,15 +555,50 @@ export default function SubmitForm() {
         );
 
       case "date":
+        const selectedDate = fieldValue ? new Date(fieldValue) : undefined;
+
         return (
-          <Input
-            type="date"
-            {...baseProps}
-            value={fieldValue}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleInputChange(field.id, e.target.value)
-            }
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-right font-normal",
+                  !fieldValue && "text-muted-foreground",
+                  errors[field.id] &&
+                    "border-red-500 focus-visible:ring-red-500",
+                )}
+              >
+                <CalendarIcon className="ml-2 h-4 w-4" />
+                {fieldValue ? (
+                  new Date(fieldValue).toLocaleDateString("fa-IR", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                ) : (
+                  <span>تاریخ را انتخاب کنید</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    handleInputChange(
+                      field.id,
+                      date.toISOString().split("T")[0],
+                    );
+                  } else {
+                    handleInputChange(field.id, "");
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         );
 
       case "number":
@@ -663,8 +699,8 @@ export default function SubmitForm() {
               </h1>
 
               <p className="text-lg text-muted-foreground mb-2">
-                از ارسال فرم{" "}
-                <span className="font-semibold">{formTitle}</span> متشکریم
+                از ارسال فرم <span className="font-semibold">{formTitle}</span>{" "}
+                متشکریم
               </p>
 
               <p className="text-muted-foreground mb-8">
@@ -693,7 +729,8 @@ export default function SubmitForm() {
 
               <div className="mt-8 pt-6 border-t">
                 <p className="text-sm text-muted-foreground">
-                  نیاز به ایجاد تغییرات دارید؟ روی "ارسال پاسخ دیگر" کلیک کنید تا دوباره فرم را پر کنید.
+                  نیاز به ایجاد تغییرات دارید؟ روی "ارسال پاسخ دیگر" کلیک کنید
+                  تا دوباره فرم را پر کنید.
                 </p>
               </div>
             </CardContent>
@@ -801,8 +838,8 @@ export default function SubmitForm() {
                                 <span className="text-red-500">*</span> فیلدهای
                                 الزامی
                                 {" • "}
-                                {fields.filter((f) => f.required).length}{" "}
-                                فیلد الزامی
+                                {fields.filter((f) => f.required).length} فیلد
+                                الزامی
                               </>
                             ) : (
                               "تمام فیلدها اختیاری هستند"
@@ -822,7 +859,10 @@ export default function SubmitForm() {
                   <p className="text-muted-foreground mb-4">
                     این فرم هیچ فیلدی برای ارسال ندارد.
                   </p>
-                  <Button onClick={() => navigate(`/responses/${id}`)} variant="outline">
+                  <Button
+                    onClick={() => navigate(`/responses/${id}`)}
+                    variant="outline"
+                  >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     بازگشت به فهرست پاسخ ها
                   </Button>
@@ -833,7 +873,8 @@ export default function SubmitForm() {
             {/* Form Info Footer */}
             <div className="mt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                این فرم توسط FormBuilder پشتیبانی می‌شود • پاسخ‌های شما امن و خصوصی هستند
+                این فرم توسط FormBuilder پشتیبانی می‌شود • پاسخ‌های شما امن و
+                خصوصی هستند
               </p>
             </div>
           </>

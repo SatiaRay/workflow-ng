@@ -7,6 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,7 +66,10 @@ interface RelatedResponse {
 }
 
 export default function EditResponse() {
-  const { formId, responseId } = useParams<{ formId: string; responseId: string }>();
+  const { formId, responseId } = useParams<{
+    formId: string;
+    responseId: string;
+  }>();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -94,7 +105,7 @@ export default function EditResponse() {
       try {
         // Fetch form details
         let form = await supabaseService.getFormById(formId);
-        
+
         // If not found with string ID, try numeric ID
         if (!form && !isNaN(Number(formId))) {
           form = await supabaseService.getFormById(Number(formId));
@@ -129,7 +140,7 @@ export default function EditResponse() {
 
         // Fetch response data
         let response = await supabaseService.getResponseById(responseId);
-        
+
         // If not found with string ID, try numeric ID
         if (!response && !isNaN(Number(responseId))) {
           response = await supabaseService.getResponseById(Number(responseId));
@@ -144,7 +155,7 @@ export default function EditResponse() {
         // Check if response belongs to the form (compare as strings)
         const responseFormId = response.form_id.toString();
         const currentFormId = formId.toString();
-        
+
         if (responseFormId !== currentFormId) {
           toast.error("این پاسخ متعلق به این فرم نیست");
           setResponseNotFound(true);
@@ -180,7 +191,6 @@ export default function EditResponse() {
 
         // Fetch related responses for relation fields
         await fetchRelatedResponses(parsedFields, data);
-
       } catch (error: any) {
         console.error("Error fetching data:", error);
         toast.error(`خطا در بارگذاری اطلاعات: ${error.message}`);
@@ -193,11 +203,14 @@ export default function EditResponse() {
     fetchData();
   }, [formId, responseId]);
 
-  const fetchRelatedResponses = async (fields: FormField[], currentData: Record<string, any>) => {
+  const fetchRelatedResponses = async (
+    fields: FormField[],
+    currentData: Record<string, any>,
+  ) => {
     console.log(currentData);
-    
+
     const relationFields = fields.filter(
-      (f) => f.type === "relation" && f.relationConfig?.formId
+      (f) => f.type === "relation" && f.relationConfig?.formId,
     );
 
     for (const field of relationFields) {
@@ -211,7 +224,7 @@ export default function EditResponse() {
         if (!Array.isArray(responses)) {
           console.error(
             `Expected array of responses for form ${formId}, got:`,
-            responses
+            responses,
           );
           setRelatedResponses((prev) => ({
             ...prev,
@@ -229,13 +242,8 @@ export default function EditResponse() {
               if (response.data) {
                 data = response.data;
               } else {
-                const {
-                  id,
-                  created_at,
-                  updated_at,
-                  form_id,
-                  ...rest
-                } = response;
+                const { id, created_at, updated_at, form_id, ...rest } =
+                  response;
                 data = rest;
               }
             } catch (error) {
@@ -244,10 +252,7 @@ export default function EditResponse() {
             }
 
             // Get display value from the configured display field
-            let displayValue = `پاسخ ${String(responseId).substring(
-              0,
-              8
-            )}...`;
+            let displayValue = `پاسخ ${String(responseId).substring(0, 8)}...`;
 
             if (field.relationConfig?.displayField) {
               const displayFieldValue = data[field.relationConfig.displayField];
@@ -263,7 +268,7 @@ export default function EditResponse() {
                   (val) =>
                     val !== undefined &&
                     val !== null &&
-                    String(val).trim() !== ""
+                    String(val).trim() !== "",
                 );
                 if (firstTextValue) {
                   const strValue = String(firstTextValue);
@@ -295,7 +300,7 @@ export default function EditResponse() {
       } catch (error) {
         console.error(
           `Error fetching related responses for field ${field.id}:`,
-          error
+          error,
         );
         toast.error(`بارگذاری داده‌های مرتبط برای ${field.label} ناموفق بود`);
 
@@ -343,7 +348,8 @@ export default function EditResponse() {
           field.type === "relation"
         ) {
           if (!value || value.toString().trim() === "") {
-            newErrors[field.id] = `لطفاً یک گزینه برای ${field.label} انتخاب کنید`;
+            newErrors[field.id] =
+              `لطفاً یک گزینه برای ${field.label} انتخاب کنید`;
           }
         } else if (!value || value.toString().trim() === "") {
           newErrors[field.id] = `${field.label} الزامی است`;
@@ -478,7 +484,8 @@ export default function EditResponse() {
       case "relation":
         const responses = relatedResponses[field.id] || [];
         const hasResponses = responses.length > 0;
-        const relationFormTitle = field.relationConfig?.formTitle || "فرم مرتبط";
+        const relationFormTitle =
+          field.relationConfig?.formTitle || "فرم مرتبط";
 
         return (
           <div className="space-y-2">
@@ -489,15 +496,15 @@ export default function EditResponse() {
                 value: response.id,
                 label: response.displayValue,
                 description: `ارسال شده در ${new Date(
-                  response.created_at
+                  response.created_at,
                 ).toLocaleDateString("fa-IR")}`,
               }))}
               placeholder={
                 isLoading
                   ? "در حال بارگذاری گزینه‌ها..."
                   : hasResponses
-                  ? field.placeholder || `انتخاب از ${relationFormTitle}`
-                  : "پاسخی موجود نیست"
+                    ? field.placeholder || `انتخاب از ${relationFormTitle}`
+                    : "پاسخی موجود نیست"
               }
               disabled={isLoading || !hasResponses}
               className={fieldError ? "border-red-500" : ""}
@@ -578,15 +585,50 @@ export default function EditResponse() {
         );
 
       case "date":
+        const selectedDate = fieldValue ? new Date(fieldValue) : undefined;
+
         return (
-          <Input
-            type="date"
-            {...baseProps}
-            value={fieldValue}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleInputChange(field.id, e.target.value)
-            }
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-right font-normal",
+                  !fieldValue && "text-muted-foreground",
+                  errors[field.id] &&
+                    "border-red-500 focus-visible:ring-red-500",
+                )}
+              >
+                <CalendarIcon className="ml-2 h-4 w-4" />
+                {fieldValue ? (
+                  new Date(fieldValue).toLocaleDateString("fa-IR", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                ) : (
+                  <span>تاریخ را انتخاب کنید</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    handleInputChange(
+                      field.id,
+                      date.toISOString().split("T")[0],
+                    );
+                  } else {
+                    handleInputChange(field.id, "");
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         );
 
       case "number":
@@ -659,12 +701,12 @@ export default function EditResponse() {
               {formNotFound ? "فرم یافت نشد" : "پاسخ یافت نشد"}
             </h2>
             <p className="text-muted-foreground mb-4">
-              {formNotFound 
+              {formNotFound
                 ? "این فرم وجود ندارد یا حذف شده است."
                 : "این پاسخ وجود ندارد یا حذف شده است."}
             </p>
-            <Button 
-              onClick={() => navigate(`/responses/${formId}`)} 
+            <Button
+              onClick={() => navigate(`/responses/${formId}`)}
               variant="outline"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -694,8 +736,8 @@ export default function EditResponse() {
               </h1>
 
               <p className="text-lg text-muted-foreground mb-2">
-                پاسخ شما برای{" "}
-                <span className="font-semibold">{formTitle}</span> به‌روزرسانی شد.
+                پاسخ شما برای <span className="font-semibold">{formTitle}</span>{" "}
+                به‌روزرسانی شد.
               </p>
 
               <p className="text-muted-foreground mb-8">
@@ -751,7 +793,9 @@ export default function EditResponse() {
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <span>ویرایش پاسخ موجود • شناسه: {responseId?.substring(0, 8)}...</span>
+                <span>
+                  ویرایش پاسخ موجود • شناسه: {responseId?.substring(0, 8)}...
+                </span>
               </div>
 
               {fields.length === 0 && (
@@ -802,7 +846,6 @@ export default function EditResponse() {
                               هرگز ایمیل شما را با کسی به اشتراک نخواهیم گذاشت.
                             </p>
                           )}
-
                         </div>
                       ))}
 
@@ -834,8 +877,8 @@ export default function EditResponse() {
                                 <span className="text-red-500">*</span> فیلدهای
                                 الزامی
                                 {" • "}
-                                {fields.filter((f) => f.required).length}{" "}
-                                فیلد الزامی
+                                {fields.filter((f) => f.required).length} فیلد
+                                الزامی
                               </>
                             ) : (
                               "تمام فیلدها اختیاری هستند"
@@ -855,8 +898,8 @@ export default function EditResponse() {
                   <p className="text-muted-foreground mb-4">
                     این فرم هیچ فیلدی برای ویرایش ندارد.
                   </p>
-                  <Button 
-                    onClick={() => navigate(`/responses/${formId}`)} 
+                  <Button
+                    onClick={() => navigate(`/responses/${formId}`)}
                     variant="outline"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
@@ -869,7 +912,8 @@ export default function EditResponse() {
             {/* Form Info Footer */}
             <div className="mt-8 text-center">
               <p className="text-sm text-muted-foreground">
-                این فرم توسط گردش کار ساتیا پشتیبانی می‌شود • به‌روزرسانی‌های پاسخ شما امن و خصوصی هستند
+                این فرم توسط گردش کار ساتیا پشتیبانی می‌شود • به‌روزرسانی‌های
+                پاسخ شما امن و خصوصی هستند
               </p>
             </div>
           </>
